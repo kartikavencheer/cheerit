@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (token) {
         try {
-          const { data } = await apiClient.get<any>('/user/profile');
+          const { data } = await apiClient.get<any>('/users/me');
           const profile = toUserProfile(data);
           setUser(profile);
           localStorage.setItem('cheerit_user', JSON.stringify(profile));
@@ -67,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: String(apiUser?.full_name ?? apiUser?.name ?? 'User'),
       phone: String(apiUser?.mobile_number ?? apiUser?.phone ?? ''),
       avatar: apiUser?.avatar ?? undefined,
+      createdAt: apiUser?.created_at ?? apiUser?.createdAt ?? apiUser?.created_on ?? undefined,
     };
   };
 
@@ -112,6 +113,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const nextUser = toUserProfile(data.user);
       setUser(nextUser);
       localStorage.setItem('cheerit_user', JSON.stringify(nextUser));
+
+      try {
+        const { data: me } = await apiClient.get<any>('/users/me');
+        const fullProfile = toUserProfile(me);
+        setUser(fullProfile);
+        localStorage.setItem('cheerit_user', JSON.stringify(fullProfile));
+      } catch {
+        // Non-fatal: keep the user from verify response
+      }
       toast.success(data.message || 'Login successful!');
     } catch (error) {
       console.error('Login failed:', error);

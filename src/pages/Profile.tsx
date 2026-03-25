@@ -2,11 +2,36 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, User, Phone, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useQuery } from '@tanstack/react-query';
+import { getPlayedScenesPage, getVideosPage } from '../api/client';
 
 export const Profile: React.FC = () => {
   const { user, logout } = useAuth();
 
   if (!user) return null;
+
+  const parseMemberSince = (input?: string) => {
+    if (!input) return undefined;
+    const trimmed = input.trim();
+    const match = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})\b/);
+    if (match) return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    const d = new Date(trimmed);
+    return Number.isFinite(d.getTime()) ? d : undefined;
+  };
+
+  const { data: videosMeta, isLoading: isLoadingVideos, isError: isVideosError } = useQuery({
+    queryKey: ['profile', 'stats', 'videos', user.id],
+    queryFn: () => getVideosPage(user.id, 1, 1),
+  });
+
+  const { data: scenesMeta, isLoading: isLoadingScenes, isError: isScenesError } = useQuery({
+    queryKey: ['profile', 'stats', 'scenes', user.id],
+    queryFn: () => getPlayedScenesPage(1, 1),
+  });
+
+  const memberSince = parseMemberSince(user.createdAt);
+  const videosCount = videosMeta?.total ?? videosMeta?.items.length ?? 0;
+  const scenesCount = scenesMeta?.total ?? scenesMeta?.items.length ?? 0;
 
   return (
     <div className="page-container pt-28 pb-12 max-w-3xl">
@@ -56,15 +81,15 @@ export const Profile: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center border-b border-border pb-2">
                   <span className="text-gray-400">Videos in Library</span>
-                  <span className="font-bold text-foreground">12</span>
+                  <span className="font-bold text-foreground">{isLoadingVideos || isVideosError ? '—' : videosCount}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-border pb-2">
                   <span className="text-gray-400">Played Scenes</span>
-                  <span className="font-bold text-foreground">5</span>
+                  <span className="font-bold text-foreground">{isLoadingScenes || isScenesError ? '—' : scenesCount}</span>
                 </div>
                 <div className="flex justify-between items-center pb-2">
                   <span className="text-gray-400">Member Since</span>
-                  <span className="font-bold text-foreground">2024</span>
+                  <span className="font-bold text-foreground">{memberSince ? memberSince.getFullYear() : '—'}</span>
                 </div>
               </div>
             </div>
