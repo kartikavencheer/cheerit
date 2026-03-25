@@ -62,6 +62,7 @@ export interface Video {
   timestamp: string;
   thumbnailUrl: string;
   videoUrl: string;
+  status?: 'approved' | 'rejected' | 'pending';
 }
 
 export interface PlayedScene {
@@ -72,6 +73,75 @@ export interface PlayedScene {
   thumbnailUrl: string;
 }
 
+type ApiWrapped<T> = { data: T } | T;
+
+type ApiLibraryItem = {
+  id?: string | number | null;
+  submission_id?: string | number | null;
+  matchName?: string | null;
+  match_name?: string | null;
+  event_name?: string | null;
+  event?: { event_name?: string | null } | null;
+  timestamp?: string | null;
+  created_at?: string | null;
+  approved_at?: string | null;
+  rejected_at?: string | null;
+  status?: string | null;
+  approval_status?: string | null;
+  is_approved?: boolean | null;
+  is_rejected?: boolean | null;
+  thumbnailUrl?: string | null;
+  thumbnail_url?: string | null;
+  videoUrl?: string | null;
+  media_url?: string | null;
+  video_url?: string | null;
+};
+
+const toVideo = (item: ApiLibraryItem): Video => {
+  const id = String(item.id ?? item.submission_id ?? '');
+  const matchName = String(item.matchName ?? item.match_name ?? item.event_name ?? item.event?.event_name ?? 'Match');
+  const rawTimestamp = String(item.timestamp ?? item.created_at ?? item.approved_at ?? '');
+  const parsed = parseCheeritDateTime(rawTimestamp);
+  const timestamp = Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  const thumbnailUrl = String(item.thumbnailUrl ?? item.thumbnail_url ?? '');
+  const videoUrl = String(item.videoUrl ?? item.video_url ?? item.media_url ?? '');
+
+  const statusRaw = String(item.approval_status ?? item.status ?? '').toLowerCase().trim();
+  const status: Video['status'] =
+    item.is_rejected === true || !!item.rejected_at || statusRaw.includes('reject')
+      ? 'rejected'
+      : item.is_approved === true || !!item.approved_at || statusRaw.includes('approve')
+        ? 'approved'
+        : 'pending';
+
+  return { id, matchName, timestamp, thumbnailUrl, videoUrl, status };
+};
+
+const extractArray = (payload: any): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.value)) return payload.value;
+  if (Array.isArray(payload?.value?.data)) return payload.value.data;
+  return [];
+};
+
+export const getVideos = async (userId: string, page: number, limit = 10) => {
+  const { data } = await apiClient.get<any>('/submissions/mobile', {
+    params: { user_id: userId, page, limit },
+  });
+
+  const items = extractArray(data) as ApiLibraryItem[];
+  return items.map(toVideo).filter((v) => v.id && v.videoUrl);
+};
+
+// Back-compat (older API)
+export const getUserLibrary = async () => {
+  const { data } = await apiClient.get<any>('/user/library');
+  const items = extractArray(data) as ApiLibraryItem[];
+  return items.map(toVideo).filter((v) => v.id && v.videoUrl);
+};
+
 const EVENT_STATUS_ID: Record<EventStatusFilter, number> = {
   upcoming: 1,
   scheduled: 2,
@@ -80,7 +150,7 @@ const EVENT_STATUS_ID: Record<EventStatusFilter, number> = {
   cancelled: 5,
 };
 
-const parseCheeritDateTime = (input?: string | null): Date => {
+function parseCheeritDateTime(input?: string | null): Date {
   if (!input) return new Date(0);
   const match = input.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*(am|pm)$/i);
   if (!match) return new Date(input);
@@ -91,7 +161,7 @@ const parseCheeritDateTime = (input?: string | null): Date => {
   if (hours === 12) hours = 0;
   if (isPm) hours += 12;
   return new Date(Number(yyyy), Number(mm) - 1, Number(dd), hours, minutes, 0, 0);
-};
+}
 
 const splitTeamsFromName = (eventName?: string | null, shortName?: string | null): { a: string; b: string } => {
   const raw = (eventName ?? '').trim() || (shortName ?? '').trim();

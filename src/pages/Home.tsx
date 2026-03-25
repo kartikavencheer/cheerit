@@ -5,6 +5,7 @@ import { apiClient, Match, getEventList } from '../api/client';
 import { MatchCard } from '../components/MatchCard';
 import { motion } from 'motion/react';
 import { Smartphone, CheckCircle, ShieldCheck, QrCode, Video, Film, Calendar as CalendarIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const { isAuthenticated, sendOtp, login } = useAuth();
@@ -38,7 +39,7 @@ export const Home: React.FC = () => {
     if (!agreed) return;
     setIsLoading(true);
     try {
-      await sendOtp(`+91${phone}`);
+      await sendOtp(phone);
       setStep('otp');
     } catch (error) {
       // Error handled in context
@@ -51,7 +52,7 @@ export const Home: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(`+91${phone}`, otp);
+      await login(phone, otp);
     } catch (error) {
       // Error handled in context
     } finally {
@@ -183,9 +184,11 @@ export const Home: React.FC = () => {
                 </p>
                 <div className="flex items-center gap-4 mt-6">
                   <span className="text-gray-500 font-medium">Powered by</span>
-                  <span className="text-3xl font-display font-bold text-foreground tracking-tight">
-                    Cheer<span className="text-primary">IT</span>
-                  </span>
+                   <img 
+    src="public/images/image.png" 
+    alt="Avencheer" 
+    className="h-12 w-auto"
+  />
                 </div>
                 <div className="flex items-center gap-2 text-primary font-semibold mt-2 bg-primary/10 w-fit px-4 py-1.5 rounded-full border border-primary/20">
                   <ShieldCheck className="w-5 h-5" />
@@ -331,9 +334,9 @@ export const Home: React.FC = () => {
                   <h3 className="text-3xl 2xl:text-4xl font-display font-bold text-foreground mb-3">You're logged in!</h3>
                   <p className="text-gray-400 mb-8 font-medium">Ready to capture and share your fan moments.</p>
                   <div className="flex flex-col gap-4">
-                    <a href="/library" className="bg-gradient-to-r from-primary to-[#FF9D00] hover:from-[#E65C00] hover:to-[#E68A00] text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5">
+                    <Link to="/library" className="bg-gradient-to-r from-primary to-[#FF9D00] hover:from-[#E65C00] hover:to-[#E68A00] text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5">
                       Go to My Library
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}

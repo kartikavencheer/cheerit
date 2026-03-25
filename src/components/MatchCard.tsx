@@ -47,7 +47,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           </div>
 
           {/* Center Score/Time */}
-          <div className="flex flex-col items-center justify-center w-[30%]">
+          {/* <div className="flex flex-col items-center justify-center w-[30%]">
             {isLive ? (
               <div className="text-4xl 2xl:text-5xl font-mono font-bold text-foreground tracking-wider drop-shadow-[0_0_15px_rgba(255,106,0,0.5)]">
                 {match.score || '0-0'}
@@ -59,7 +59,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
               </div>
             )}
             <div className="text-[10px] text-gray-500 mt-4 font-bold uppercase tracking-[0.2em] bg-white/5 px-3 py-1 rounded-full">VS</div>
-          </div>
+          </div> */}
 
           {/* Team B */}
           <div className="flex flex-col items-center gap-4 w-[35%]">

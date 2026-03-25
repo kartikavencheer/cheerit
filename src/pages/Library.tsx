@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient, Video } from '../api/client';
+import { Video, getVideos } from '../api/client';
 import { VideoModal } from '../components/VideoModal';
 import { Play, Calendar, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
 
 export const Library: React.FC = () => {
+  const { user } = useAuth();
+  const [page, setPage] = useState(1);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const { data: videos, isLoading } = useQuery({
-    queryKey: ['user', 'library'],
-    queryFn: async () => {
-      const { data } = await apiClient.get<Video[]>('/user/library');
-      return data;
-    },
+    queryKey: ['user', 'library', user?.id, page],
+    enabled: !!user?.id,
+    queryFn: () => getVideos(user!.id, page, 12),
   });
 
   return (
@@ -25,30 +26,42 @@ export const Library: React.FC = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {!user?.id ? (
+        <div className="glass-card p-10 text-center rounded-2xl border border-border">
+          <h3 className="text-xl font-display font-bold text-foreground mb-2">Login required</h3>
+          <p className="text-muted">Please login to view your library.</p>
+        </div>
+      ) : isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="glass-card aspect-video animate-pulse bg-surface-hover rounded-2xl"></div>
           ))}
         </div>
       ) : videos && videos.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-          {videos.map((video, index) => {
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {videos.map((video, index) => {
             const date = new Date(video.timestamp);
+            const statusClasses =
+              video.status === 'approved'
+                ? 'border-green-500/80 shadow-[0_0_0_1px_rgba(34,197,94,0.45)] filter drop-shadow-[0_0_26px_rgba(34,197,94,0.40)] drop-shadow-[0_0_90px_rgba(34,197,94,0.28)] hover:border-green-500'
+                : video.status === 'rejected'
+                  ? 'border-red-500/80 shadow-[0_0_0_1px_rgba(239,68,68,0.42)] filter drop-shadow-[0_0_26px_rgba(239,68,68,0.38)] drop-shadow-[0_0_90px_rgba(239,68,68,0.26)] hover:border-red-500'
+                  : 'border-border hover:border-primary/50';
             return (
               <motion.div
                 key={video.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative rounded-2xl overflow-hidden cursor-pointer border border-border hover:border-primary/50 transition-all duration-300 shadow-lg"
+                className={`group relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-300 shadow-lg ${statusClasses}`}
                 onClick={() => setSelectedVideo(video)}
               >
                 <div className="aspect-video relative">
                   <img
                     src={video.thumbnailUrl}
                     alt={video.matchName}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-contain bg-black/5 transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
                   
@@ -74,7 +87,28 @@ export const Library: React.FC = () => {
                 </div>
               </motion.div>
             );
-          })}
+            })}
+          </div>
+
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-border text-foreground font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Prev
+            </button>
+            <div className="text-sm text-muted font-semibold">Page {page}</div>
+            <button
+              type="button"
+              disabled={(videos?.length ?? 0) < 10}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-primary/20"
+            >
+              Next
+            </button>
+          </div>
         </div>
       ) : (
         <div className="glass-card p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">

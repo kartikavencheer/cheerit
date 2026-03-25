@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import { apiClient, UserProfile } from '../api/client';
 import { toast } from 'sonner';
 
@@ -20,24 +21,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('cheerit_token');
-      if (token) {
+      const savedUser = localStorage.getItem('cheerit_user');
+      if (savedUser) {
         try {
-          const { data } = await apiClient.get<UserProfile>('/user/profile');
-          setUser(data);
-        } catch (error) {
-          console.error('Auth check failed:', error);
-          localStorage.removeItem('cheerit_token');
+          setUser(JSON.parse(savedUser) as UserProfile);
+        } catch {
+          localStorage.removeItem('cheerit_user');
         }
       }
+
+      if (token) {
+        try {
+          const { data } = await apiClient.get<any>('/user/profile');
+          const profile = toUserProfile(data);
+          setUser(profile);
+          localStorage.setItem('cheerit_user', JSON.stringify(profile));
+        } catch (error) {
+          const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+          console.error('Auth check failed:', error);
+          if (status === 401 || status === 403) {
+            localStorage.removeItem('cheerit_token');
+            localStorage.removeItem('cheerit_refresh_token');
+            localStorage.removeItem('cheerit_user');
+            setUser(null);
+          }
+        }
+      }
+
       setIsLoading(false);
     };
     checkAuth();
   }, []);
 
+  const normalizeMobileNumber = (input: string) => {
+    const digits = input.replace(/\D/g, '');
+    if (digits.length === 10) return digits;
+    if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+    if (digits.length > 10) return digits.slice(-10);
+    return digits;
+  };
+
+  const toUserProfile = (apiUser: any): UserProfile => {
+    return {
+      id: String(apiUser?.id ?? apiUser?.user_id ?? ''),
+      name: String(apiUser?.full_name ?? apiUser?.name ?? 'User'),
+      phone: String(apiUser?.mobile_number ?? apiUser?.phone ?? ''),
+      avatar: apiUser?.avatar ?? undefined,
+    };
+  };
+
   const sendOtp = async (phone: string) => {
     try {
-      await apiClient.post('/auth/send-otp', { phone });
-      toast.success('OTP sent successfully!');
+      const mobileNumber = normalizeMobileNumber(phone);
+      const { data } = await apiClient.post<{ success?: boolean; message?: string }>('/auth/request-otp', {
+        mobileNumber,
+        platform: 'web',
+      });
+      toast.success(data?.message || 'OTP sent successfully!');
     } catch (error) {
       console.error('Failed to send OTP:', error);
       toast.error('Failed to send OTP. Please try again.');
@@ -47,19 +87,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (phone: string, otp: string) => {
     try {
-      const { data } = await apiClient.post<{ token: string; user: UserProfile }>('/auth/verify-otp', { phone, otp });
-      localStorage.setItem('cheerit_token', data.token);
-      setUser(data.user);
-      toast.success('Login successful!');
+      const mobileNumber = normalizeMobileNumber(phone);
+      const { data } = await apiClient.post<{
+        success: boolean;
+        message?: string;
+        accessToken?: string;
+        refreshToken?: string;
+        user?: any;
+        token?: string;
+      }>('/auth/verify-otp', { mobileNumber, otpCode: otp, platform: 'web' });
+
+      if (!data?.success) {
+        throw new Error(data?.message || 'OTP invalid');
+      }
+
+      const token = data.accessToken || data.token;
+      if (!token || !data.user) {
+        throw new Error('Login response missing token/user');
+      }
+
+      localStorage.setItem('cheerit_token', token);
+      if (data.refreshToken) localStorage.setItem('cheerit_refresh_token', data.refreshToken);
+
+      const nextUser = toUserProfile(data.user);
+      setUser(nextUser);
+      localStorage.setItem('cheerit_user', JSON.stringify(nextUser));
+      toast.success(data.message || 'Login successful!');
     } catch (error) {
       console.error('Login failed:', error);
-      toast.error('Invalid OTP or login failed.');
+      const message = error instanceof Error ? error.message : 'Invalid OTP or login failed.';
+      toast.error(message);
       throw error;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('cheerit_token');
+    localStorage.removeItem('cheerit_refresh_token');
+    localStorage.removeItem('cheerit_user');
     setUser(null);
     toast.info('Logged out successfully.');
   };
