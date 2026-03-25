@@ -270,16 +270,37 @@ export const getPlayedSceneGridsForUser = async (userId: string) => {
     }
     for (const scene of scenes) {
       const tiles = (scene.submissions ?? []).map((s) => {
-        const submissionId = String((s as any).submission_id ?? (s as any).submissionId ?? (s as any).id ?? '');
+        const submissionData = (s as any)?.submission || s || {};
+        const submissionId = String(
+          submissionData.submission_id ??
+          submissionData.submissionId ??
+          submissionData.id ??
+          (s as any).submission_id ??
+          (s as any).submissionId ??
+          (s as any).id ??
+          ''
+        );
         const fromEvent = bySubmission.get(submissionId);
         const directThumb =
+          submissionData.thumbnail_url ??
+          submissionData.thumbnailUrl ??
+          submissionData.thumbnail ??
+          submissionData.thumb_url ??
+          submissionData.thumbUrl ??
           (s as any)?.thumbnail_url ??
           (s as any)?.thumbnailUrl ??
           (s as any)?.thumbnail ??
-          (s as any)?.thumb_url ??
-          (s as any)?.thumbUrl ??
           undefined;
         const directVideo =
+          submissionData.media_url ??
+          submissionData.mediaUrl ??
+          submissionData.video_url ??
+          submissionData.videoUrl ??
+          submissionData.file_url ??
+          submissionData.fileUrl ??
+          submissionData.signed_url ??
+          submissionData.signedUrl ??
+          submissionData.url ??
           (s as any)?.media_url ??
           (s as any)?.mediaUrl ??
           (s as any)?.video_url ??
@@ -301,11 +322,11 @@ export const getPlayedSceneGridsForUser = async (userId: string) => {
         const isUserPlayed =
           isUser &&
           (entry.statusBySubmission.get(submissionId) === 'played' ||
-            String((s as any).submission_status ?? (s as any).submissionStatus ?? (s as any).status ?? '').toLowerCase().includes('played'));
+            String(submissionData.submission_status ?? submissionData.submissionStatus ?? submissionData.status ?? (s as any).status ?? '').toLowerCase().includes('played'));
         return {
-          tileId: String((s as any).tile_id ?? (s as any).tileId ?? (s as any).id ?? `${scene.scene_id}:${submissionId}`),
+          tileId: String(submissionData.tile_id ?? submissionData.tileId ?? (s as any).id ?? `${scene.scene_id}:${submissionId}`),
           submissionId,
-          submissionStatus: ((s as any).submission_status ?? (s as any).submissionStatus ?? (s as any).status ?? undefined) as
+          submissionStatus: (submissionData.submission_status ?? submissionData.submissionStatus ?? submissionData.status ?? (s as any).status ?? undefined) as
             | string
             | undefined,
           thumbnailUrl: thumbnailUrl || undefined,

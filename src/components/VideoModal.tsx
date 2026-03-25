@@ -56,12 +56,12 @@ export const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, videoUr
             </div>
 
             {/* Video Container */}
-            <div className="relative w-full aspect-video bg-black flex-shrink-0">
+            <div className="relative w-full bg-black flex items-center justify-center flex-shrink-0">
               <video
                 src={videoUrl}
                 controls
                 autoPlay
-                className="w-full h-full object-contain"
+                className="block w-full h-auto max-h-[70vh] object-contain"
               >
                 Your browser does not support the video tag.
               </video>

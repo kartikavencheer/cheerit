@@ -57,13 +57,13 @@ export const Library: React.FC = () => {
                 className={`group relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-300 shadow-lg ${statusClasses}`}
                 onClick={() => setSelectedVideo(video)}
               >
-                <div className="aspect-video relative">
+                <div className="relative bg-black/5">
                   <img
                     src={video.thumbnailUrl}
                     alt={video.matchName}
-                    className="w-full h-full object-contain bg-black/5 transition-transform duration-500 group-hover:scale-[1.02]"
+                    className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="w-16 h-16 2xl:w-20 2xl:h-20 rounded-full bg-primary/90 flex items-center justify-center text-white shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
@@ -72,9 +72,9 @@ export const Library: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-lg 2xl:text-xl font-bold text-white truncate drop-shadow-md">{video.matchName}</h3>
-                  <div className="flex items-center gap-4 mt-2 text-xs 2xl:text-sm text-gray-300 font-medium">
+                <div className="p-4 bg-[#0a0a0a] border-t border-white/10">
+                  <h3 className="text-lg 2xl:text-xl font-bold text-white truncate">{video.matchName}</h3>
+                  <div className="flex items-center gap-4 mt-2 text-xs 2xl:text-sm text-gray-400 font-medium">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 2xl:w-3.5 2xl:h-3.5" />
                       {date.toLocaleDateString()}
