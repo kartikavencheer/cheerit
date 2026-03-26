@@ -88,7 +88,7 @@ export const Home: React.FC = () => {
 
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">Powered by</span>
-                <img src="public/images/image.png" className="h-8" />
+                <img src="/images/image.png" className="h-8" />
               </div>
 
               <div className="flex items-center gap-2 text-primary text-sm bg-primary/10 px-3 py-1 rounded-full w-fit">

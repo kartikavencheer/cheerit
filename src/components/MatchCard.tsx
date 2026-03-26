@@ -51,7 +51,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
   
   {/* IMAGE */}
   <img 
-    src="public/images/VS.png" 
+    src="/images/VS.png" 
     alt="match logo"
     className="w-12 h-12 object-contain mb-2"
   />
