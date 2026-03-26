@@ -78,21 +78,16 @@ export const PlayedScenes: React.FC = () => {
                       const tile = scene.tiles[i];
                       return (
                         <div key={tile?.tileId ?? i} className="relative w-full h-full overflow-hidden">
-                          {tile?.videoUrl ? (
-                            <video
-                              src={tile.videoUrl}
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                              className="w-full h-full object-contain bg-black/5"
-                            />
-                          ) : tile?.thumbnailUrl ? (
+                          {tile?.thumbnailUrl ? (
                             <img
                               src={tile.thumbnailUrl}
                               alt="Tile"
                               className="w-full h-full object-contain bg-black/5"
                             />
+                          ) : tile?.videoUrl ? (
+                            <div className="w-full h-full bg-white/5 flex items-center justify-center text-[10px] text-gray-400">
+                              Video
+                            </div>
                           ) : scene.thumbnailUrl ? (
                             <img
                               src={scene.thumbnailUrl}

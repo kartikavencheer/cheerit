@@ -20,6 +20,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const videosRef = useRef<(HTMLVideoElement | null)[]>([]);
+  const [tileErrors, setTileErrors] = useState<Record<string, string>>({});
 
   const panels = Math.max(1, scene.tiles.length || scene.totalPanels || 1);
   const cols = gridColsForPanels(panels);
@@ -35,6 +36,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
       setIsPlaying(false);
       setIsMuted(true);
       videosRef.current = [];
+      setTileErrors({});
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -73,6 +75,14 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
     setIsMuted(next);
     const vids = videosRef.current.filter(Boolean) as HTMLVideoElement[];
     for (const v of vids) v.muted = next;
+  };
+
+  const mediaErrorMessage = (el: HTMLMediaElement | null) => {
+    const code = el?.error?.code;
+    if (code === 2) return 'Network error (URL blocked/expired/server)';
+    if (code === 3) return 'Decode error (unsupported codec)';
+    if (code === 4) return 'Source not supported';
+    return 'Playback failed';
   };
 
   return (
@@ -152,13 +162,18 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                       tile?.isUser ? 'border-primary/70 shadow-[0_0_0_1px_rgba(255,106,0,0.35)]' : 'border-white/10'
                     }`}
                   >
-                    {tile?.videoUrl ? (
+                    {tile?.videoUrl && !tileErrors[tile.tileId] ? (
                       <video
                         ref={(el) => {
                           videosRef.current[idx] = el;
                           if (el) el.muted = isMuted;
                         }}
                         src={tile.videoUrl}
+                        onError={(e) => {
+                          const el = e.currentTarget;
+                          const msg = mediaErrorMessage(el);
+                          setTileErrors((prev) => ({ ...prev, [tile.tileId]: msg }));
+                        }}
                         preload="none"
                         playsInline
                         muted={isMuted}
@@ -178,6 +193,22 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                       </div>
                     )}
 
+                    {tile?.videoUrl && tileErrors[tile.tileId] ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 text-center">
+                        <div className="space-y-2">
+                          <div className="text-xs text-gray-200 font-semibold">{tileErrors[tile.tileId]}</div>
+                          <a
+                            href={tile.videoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-xs text-white"
+                          >
+                            Open video
+                          </a>
+                        </div>
+                      </div>
+                    ) : null}
+
                     {tile?.submissionId && (
                       <div className="absolute left-2 bottom-2 px-2 py-1 rounded-lg bg-black/60 border border-white/10 text-[10px] 2xl:text-xs text-gray-200 font-mono max-w-[90%] truncate">
                         {tile.submissionId}
@@ -187,7 +218,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                 ))}
               </div>
               <div className="mt-4 text-xs 2xl:text-sm text-gray-400">
-                Tip: click “Play scene” to start all videos together. If a tile is missing video, it means the backend didn’t return a playable URL for that submission.
+                Tip: click “Play scene” to start all videos together. If a tile errors, the URL may be expired/blocked or the file codec isn’t supported by your browser.
               </div>
             </div>
           </motion.div>

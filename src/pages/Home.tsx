@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { getEventList } from '../api/client';
+import {
+  getCompletedMatchesByEventType,
+  getLiveEventTypesWithMatches,
+  getSportsEventTypes,
+  getUpcomingMatchesByEventType,
+  type EventType,
+} from '../api/client';
 import { MatchCard } from '../components/MatchCard';
 import { motion } from 'motion/react';
 import { Smartphone, CheckCircle, ShieldCheck, QrCode, Video, Film, Calendar as CalendarIcon } from 'lucide-react';
@@ -10,14 +16,98 @@ import { Link } from 'react-router-dom';
 export const Home: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
-  const { data: liveMatches, isLoading: isLoadingLive } = useQuery({
-    queryKey: ['events', 'live'],
-    queryFn: () => getEventList('live'),
+  const { data: liveByType, isLoading: isLoadingLive } = useQuery({
+    queryKey: ['events', 'live', 'by-eventtype'],
+    queryFn: () => getLiveEventTypesWithMatches(),
+    staleTime: 60_000,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
+  const liveMatches = useMemo(() => {
+    const all = liveByType?.flatMap((x) => x.matches) ?? [];
+    const byId = new Map<string, (typeof all)[number]>();
+    for (const m of all) {
+      const id = String(m?.id ?? '').trim();
+      if (!id) continue;
+      if (!byId.has(id)) byId.set(id, { ...m, id });
+    }
+    return Array.from(byId.values());
+  }, [liveByType]);
+
+  const { data: upcomingTypes } = useQuery({
+    queryKey: ['eventtypes', 'sports', 'upcoming'],
+    queryFn: () => getSportsEventTypes('upcoming'),
+  });
+
+  const { data: completedTypes } = useQuery({
+    queryKey: ['eventtypes', 'sports', 'completed'],
+    queryFn: () => getSportsEventTypes('completed'),
+  });
+
+  const allUpcomingTypes = useMemo(() => upcomingTypes ?? [], [upcomingTypes]);
+  const allCompletedTypes = useMemo(() => completedTypes ?? [], [completedTypes]);
+
+  const firstEnabledUpcomingTypeId = useMemo(() => {
+    const t = allUpcomingTypes.find((x) => (typeof x.count === 'number' ? x.count > 0 : true));
+    return t?.id ?? null;
+  }, [allUpcomingTypes]);
+
+  const firstEnabledCompletedTypeId = useMemo(() => {
+    const t = allCompletedTypes.find((x) => (typeof x.count === 'number' ? x.count > 0 : true));
+    return t?.id ?? null;
+  }, [allCompletedTypes]);
+
+  const [selectedUpcomingTypeId, setSelectedUpcomingTypeId] = useState<number | null>(null);
+  const [selectedCompletedTypeId, setSelectedCompletedTypeId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!firstEnabledUpcomingTypeId) return;
+    if (!selectedUpcomingTypeId || !allUpcomingTypes.some((t) => t.id === selectedUpcomingTypeId)) {
+      setSelectedUpcomingTypeId(firstEnabledUpcomingTypeId);
+    }
+  }, [allUpcomingTypes, firstEnabledUpcomingTypeId, selectedUpcomingTypeId]);
+
+  useEffect(() => {
+    if (!firstEnabledCompletedTypeId) return;
+    if (!selectedCompletedTypeId || !allCompletedTypes.some((t) => t.id === selectedCompletedTypeId)) {
+      setSelectedCompletedTypeId(firstEnabledCompletedTypeId);
+    }
+  }, [allCompletedTypes, firstEnabledCompletedTypeId, selectedCompletedTypeId]);
+
+  const selectedUpcomingType = useMemo(
+    () => allUpcomingTypes.find((t) => t.id === selectedUpcomingTypeId) ?? null,
+    [allUpcomingTypes, selectedUpcomingTypeId]
+  );
+  const selectedCompletedType = useMemo(
+    () => allCompletedTypes.find((t) => t.id === selectedCompletedTypeId) ?? null,
+    [allCompletedTypes, selectedCompletedTypeId]
+  );
+
+  const isUpcomingTypeEnabled = useMemo(() => {
+    if (!selectedUpcomingType) return false;
+    if (typeof selectedUpcomingType.count === 'number') return selectedUpcomingType.count > 0;
+    return true;
+  }, [selectedUpcomingType]);
+
+  const isCompletedTypeEnabled = useMemo(() => {
+    if (!selectedCompletedType) return false;
+    if (typeof selectedCompletedType.count === 'number') return selectedCompletedType.count > 0;
+    return true;
+  }, [selectedCompletedType]);
+
   const { data: upcomingMatches, isLoading: isLoadingUpcoming } = useQuery({
-    queryKey: ['events', 'upcoming'],
-    queryFn: () => getEventList('upcoming'),
+    queryKey: ['events', 'upcoming', selectedUpcomingTypeId],
+    enabled: typeof selectedUpcomingTypeId === 'number' && isUpcomingTypeEnabled,
+    queryFn: () => getUpcomingMatchesByEventType(selectedUpcomingTypeId!),
+  });
+
+  const { data: completedMatches, isLoading: isLoadingCompleted } = useQuery({
+    queryKey: ['events', 'completed', selectedCompletedTypeId],
+    enabled: typeof selectedCompletedTypeId === 'number' && isCompletedTypeEnabled,
+    queryFn: () => getCompletedMatchesByEventType(selectedCompletedTypeId!),
   });
 
   const featuredMatch = liveMatches?.[0] ?? upcomingMatches?.[0];
@@ -27,6 +117,47 @@ export const Home: React.FC = () => {
     const element = document.getElementById(id);
     if (!element) return;
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const EventTypeChips = ({
+    types,
+    selectedId,
+    onSelect,
+  }: {
+    types?: EventType[];
+    selectedId: number | null;
+    onSelect: (id: number) => void;
+  }) => {
+    if (!types?.length) return null;
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {types.map((t) => {
+          const isActive = t.id === selectedId;
+          const isEnabled = typeof t.count === 'number' ? t.count > 0 : true;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              disabled={!isEnabled}
+              onClick={() => onSelect(t.id)}
+              className={`shrink-0 flex items-center gap-3 px-4 py-2 rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isActive
+                  ? 'bg-primary/15 border-primary/30 text-foreground'
+                  : 'bg-surface hover:bg-surface-hover border-border text-muted hover:text-foreground'
+              }`}
+            >
+              {t.iconUrl ? (
+                <img src={t.iconUrl} alt={t.name} className="w-6 h-6 rounded-full object-contain" />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-white/10" />
+              )}
+              <span className="text-sm font-semibold whitespace-nowrap">{t.name}</span>
+              {typeof t.count === 'number' ? <span className="text-xs text-muted">{t.count}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -108,9 +239,13 @@ export const Home: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="bg-white p-2 rounded-lg">
-                  <QrCode className="w-14 h-14 text-black" />
-                </div>
+                <div className="bg-white p-2 rounded-lg flex items-center justify-center">
+  <img
+    src="/images/qr.png"   // 🔁 change to your image path
+    alt="QR Code"
+    className="w-25 h-25 object-contain"
+  />
+</div>
                 <span className="text-sm text-primary font-semibold">
                   Scan to Download
                 </span>
@@ -124,7 +259,7 @@ export const Home: React.FC = () => {
               {!isAuthenticated ? (
                 <div className="bg-white rounded-2xl p-6 shadow-xl max-w-md mx-auto">
 
-                  <h2 className="text-xl font-bold text-center mb-2">Login to CheerIT</h2>
+                  <h2 className="text-xl font-bold text-gray-600 text-center mb-2">Login to CheerIT</h2>
                   <p className="text-sm text-gray-600 text-center mb-4">Access your Library and Played Scenes.</p>
 
                   <Link to="/login" className="block w-full bg-primary text-white py-3 rounded-lg text-center">
@@ -153,7 +288,7 @@ export const Home: React.FC = () => {
 
         {isLoadingLive ? (
           <div>Loading...</div>
-        ) : liveMatches?.length ? (
+        ) : liveMatches.length ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {liveMatches.map((match) => (
               <MatchCard key={match.id} match={match} />
@@ -170,14 +305,57 @@ export const Home: React.FC = () => {
 
         {isLoadingUpcoming ? (
           <div>Loading...</div>
-        ) : upcomingMatches?.length ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
+        ) : allUpcomingTypes.length ? (
+          <div className="space-y-6">
+            <EventTypeChips
+              types={allUpcomingTypes}
+              selectedId={selectedUpcomingTypeId}
+              onSelect={setSelectedUpcomingTypeId}
+            />
+            {upcomingMatches?.length ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {upcomingMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </div>
+            ) : !isUpcomingTypeEnabled ? (
+              <p className="text-muted">No upcoming matches</p>
+            ) : (
+              <p className="text-muted">No upcoming matches</p>
+            )}
           </div>
         ) : (
           <p>No upcoming matches</p>
+        )}
+      </section>
+
+      {/* COMPLETED */}
+      <section id="completed-matches" className="page-container py-10">
+        <h2 className="text-3xl font-bold mb-6">Completed Matches</h2>
+
+        {isLoadingCompleted ? (
+          <div>Loading...</div>
+        ) : allCompletedTypes.length ? (
+          <div className="space-y-6">
+            <EventTypeChips
+              types={allCompletedTypes}
+              selectedId={selectedCompletedTypeId}
+              onSelect={setSelectedCompletedTypeId}
+            />
+            {completedMatches?.length ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </div>
+            ) : !isCompletedTypeEnabled ? (
+              <p className="text-muted">No completed matches</p>
+            ) : (
+              <p className="text-muted">No completed matches</p>
+            )}
+          </div>
+        ) : (
+          <p>No completed matches</p>
         )}
       </section>
 

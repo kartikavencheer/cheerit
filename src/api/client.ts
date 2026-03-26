@@ -27,6 +27,18 @@ export interface Match {
   startTime: string;
 }
 
+export type EventType = {
+  id: number;
+  name: string;
+  iconUrl?: string;
+  count?: number;
+};
+
+export type EventTypeWithMatches = {
+  type: EventType;
+  matches: Match[];
+};
+
 type EventStatusFilter = 'upcoming' | 'scheduled' | 'live' | 'completed' | 'cancelled';
 
 interface ApiEventListResponse {
@@ -44,10 +56,24 @@ interface ApiEvent {
   event_name?: string | null;
   event_short_name?: string | null;
   start_time?: string | null;
+  end_time?: string | null;
+  cheer_submission_start_time?: string | null;
+  cheer_submission_end_time?: string | null;
   eventstatus_id?: number | null;
   eventstatus?: { name?: string | null } | null;
   event_image_url?: string | null;
+  venue_name?: string | null;
+  teams?: { team_id: string; name: string; logo_url: string }[] | null;
 }
+
+type ApiEventType = {
+  eventtype_id: number;
+  name?: string | null;
+  category?: string | null;
+  is_active?: boolean | null;
+  icon_url?: string | null;
+  count?: number | null;
+};
 
 export interface UserProfile {
   id: string;
@@ -112,25 +138,117 @@ type ApiLibraryItem = {
   signedUrl?: string | null;
 };
 
+type UrlKind = 'video' | 'image' | 'any';
+
+const isLikelyHttpUrl = (s: string) => /^https?:\/\//i.test(s);
+const isLikelyImageUrl = (s: string) => /\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(s) || /thumb|thumbnail|image/i.test(s);
+const isLikelyVideoUrl = (s: string) =>
+  /\.(mp4|m3u8|webm|mov)(\?|#|$)/i.test(s) || /video|media/i.test(s);
+
+const pluckUrlString = (value: unknown, kind: UrlKind = 'any', depth = 0): string | undefined => {
+  if (!value) return undefined;
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (!s) return undefined;
+    if (kind === 'image') return s;
+    if (kind === 'video') return s;
+    return s;
+  }
+  if (typeof value !== 'object') return undefined;
+
+  const v = value as any;
+  const directCandidates =
+    kind === 'video'
+      ? [
+          v.signed_url,
+          v.signedUrl,
+          v.media_url,
+          v.mediaUrl,
+          v.video_url,
+          v.videoUrl,
+          v.file_url,
+          v.fileUrl,
+          v.url,
+          v.href,
+        ]
+      : kind === 'image'
+        ? [v.thumbnail_url, v.thumbnailUrl, v.thumb_url, v.thumbUrl, v.thumbnail, v.image_url, v.imageUrl, v.url, v.href]
+        : [
+            v.url,
+            v.href,
+            v.signed_url,
+            v.signedUrl,
+            v.media_url,
+            v.mediaUrl,
+            v.video_url,
+            v.videoUrl,
+            v.file_url,
+            v.fileUrl,
+            v.thumbnail_url,
+            v.thumbnailUrl,
+            v.thumb_url,
+            v.thumbUrl,
+          ];
+
+  for (const c of directCandidates) {
+    if (typeof c === 'string' && c.trim()) return c;
+  }
+
+  if (depth >= 2) return undefined;
+
+  const keys = Object.keys(v);
+  const nestedKeysFirst =
+    kind === 'video'
+      ? ['media', 'video', 'file', 'asset', 'playback', 'signed', 'source', 'data']
+      : kind === 'image'
+        ? ['thumbnail', 'thumb', 'image', 'poster', 'asset', 'data']
+        : ['media', 'video', 'file', 'thumbnail', 'thumb', 'image', 'asset', 'data'];
+
+  const tryKeys = [...nestedKeysFirst, ...keys];
+  for (const k of tryKeys) {
+    const child = v?.[k];
+    if (!child) continue;
+    if (typeof child === 'string') {
+      const s = child.trim();
+      if (!s) continue;
+      if (kind === 'video') {
+        if (isLikelyHttpUrl(s) && !isLikelyImageUrl(s)) return s;
+        if (isLikelyVideoUrl(s) && !isLikelyImageUrl(s)) return s;
+      } else if (kind === 'image') {
+        if (isLikelyHttpUrl(s) || isLikelyImageUrl(s)) return s;
+      } else {
+        if (isLikelyHttpUrl(s) || isLikelyImageUrl(s) || isLikelyVideoUrl(s)) return s;
+      }
+    } else if (typeof child === 'object') {
+      const nested = pluckUrlString(child, kind, depth + 1);
+      if (nested) return nested;
+    }
+  }
+
+  return undefined;
+};
+
 const toVideo = (item: ApiLibraryItem): Video => {
   const id = String(item.submission_id ?? item.submissionId ?? item.id ?? '');
   const matchName = String(item.matchName ?? item.match_name ?? item.event_name ?? item.event?.event_name ?? 'Match');
   const rawTimestamp = String(item.timestamp ?? item.created_at ?? item.approved_at ?? '');
   const parsed = parseCheeritDateTime(rawTimestamp);
   const timestamp = Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
-  const thumbnailUrl = String(item.thumbnailUrl ?? item.thumbnail_url ?? item.thumbnail ?? item.thumb_url ?? item.thumbUrl ?? '');
-  const videoUrl = String(
-    item.videoUrl ??
-      item.video_url ??
-      item.media_url ??
-      item.mediaUrl ??
-      item.file_url ??
-      item.fileUrl ??
-      item.signed_url ??
-      item.signedUrl ??
-      item.url ??
-      ''
-  );
+  const thumbnailUrl =
+    pluckUrlString(item.thumbnailUrl ?? item.thumbnail_url ?? item.thumbnail ?? item.thumb_url ?? item.thumbUrl, 'image') ?? '';
+  const videoUrl =
+    pluckUrlString(
+      item.videoUrl ??
+        item.video_url ??
+        item.media_url ??
+        item.mediaUrl ??
+        item.file_url ??
+        item.fileUrl ??
+        item.signed_url ??
+        item.signedUrl ??
+        item.url,
+      'video'
+    ) ?? '';
   const eventId = item.event_id ?? undefined;
 
   const statusRaw = String(item.approval_status ?? item.status ?? '').toLowerCase().trim();
@@ -157,13 +275,14 @@ const apiOriginFromApiUrl = () => {
   }
 };
 
-const toAbsoluteUrl = (maybeUrl?: string | null) => {
-  if (!maybeUrl) return '';
-  if (/^https?:\/\//i.test(maybeUrl)) return maybeUrl;
+const toAbsoluteUrl = (maybeUrl?: unknown) => {
+  const url = pluckUrlString(maybeUrl) ?? '';
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
   try {
-    return new URL(maybeUrl, apiOriginFromApiUrl()).toString();
+    return new URL(url, apiOriginFromApiUrl()).toString();
   } catch {
-    return maybeUrl;
+    return url;
   }
 };
 
@@ -209,6 +328,13 @@ type ApiMosaicScene = {
   }[] | null;
 };
 
+type ApiUpcomingCategory = {
+  name?: string | null;
+  icon_url?: string | null;
+  total_events?: number | null;
+  events?: ApiEvent[] | null;
+};
+
 export const getMosaicScenes = async (eventId: string) => {
   const { data } = await apiClient.get<any>(`/mosaic/scene/${eventId}`);
   const scenes = (Array.isArray(data) ? data : Array.isArray(data?.value) ? data.value : []) as ApiMosaicScene[];
@@ -216,13 +342,34 @@ export const getMosaicScenes = async (eventId: string) => {
 };
 
 export const getEventSubmissions = async (eventId: string) => {
-  const { data } = await apiClient.get<any>('/submissions/cheers', { params: { eventId } });
-  const items = extractArray(data) as ApiLibraryItem[];
-  return items.map(toVideo).filter((v) => v.id);
+  const pageSize = 200;
+  const maxPages = 50;
+  const seen = new Set<string>();
+  const allItems: ApiLibraryItem[] = [];
+
+  for (let page = 1; page <= maxPages; page++) {
+    const { data } = await apiClient.get<any>('/submissions/cheers', { params: { eventId, page, limit: pageSize } });
+    const items = extractArray(data) as ApiLibraryItem[];
+
+    let added = 0;
+    for (const it of items) {
+      const id = String((it as any)?.submission_id ?? (it as any)?.submissionId ?? (it as any)?.id ?? '');
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      allItems.push(it);
+      added++;
+    }
+
+    const total = extractTotal(data);
+    if (typeof total === 'number' && total > 0 && seen.size >= total) break;
+    if (items.length < pageSize) break;
+    if (added === 0) break;
+  }
+
+  return allItems.map(toVideo).filter((v) => v.id);
 };
 
 export const getPlayedSceneGridsForUser = async (userId: string) => {
-  // Load all user submissions (up to a safe cap) to discover eventIds and map submission -> thumbnails.
   const pageSize = 200;
   const maxPages = 50;
   const allVideos: Video[] = [];
@@ -281,36 +428,44 @@ export const getPlayedSceneGridsForUser = async (userId: string) => {
           ''
         );
         const fromEvent = bySubmission.get(submissionId);
-        const directThumb =
+        const directThumb = pluckUrlString(
           submissionData.thumbnail_url ??
-          submissionData.thumbnailUrl ??
-          submissionData.thumbnail ??
-          submissionData.thumb_url ??
-          submissionData.thumbUrl ??
-          (s as any)?.thumbnail_url ??
-          (s as any)?.thumbnailUrl ??
-          (s as any)?.thumbnail ??
-          undefined;
-        const directVideo =
+            submissionData.thumbnailUrl ??
+            submissionData.thumbnail ??
+            submissionData.thumb_url ??
+            submissionData.thumbUrl ??
+            (s as any)?.thumbnail_url ??
+            (s as any)?.thumbnailUrl ??
+            (s as any)?.thumbnail ??
+            submissionData ??
+            s ??
+            undefined,
+          'image'
+        );
+        const directVideo = pluckUrlString(
           submissionData.media_url ??
-          submissionData.mediaUrl ??
-          submissionData.video_url ??
-          submissionData.videoUrl ??
-          submissionData.file_url ??
-          submissionData.fileUrl ??
-          submissionData.signed_url ??
-          submissionData.signedUrl ??
-          submissionData.url ??
-          (s as any)?.media_url ??
-          (s as any)?.mediaUrl ??
-          (s as any)?.video_url ??
-          (s as any)?.videoUrl ??
-          (s as any)?.file_url ??
-          (s as any)?.fileUrl ??
-          (s as any)?.signed_url ??
-          (s as any)?.signedUrl ??
-          (s as any)?.url ??
-          undefined;
+            submissionData.mediaUrl ??
+            submissionData.video_url ??
+            submissionData.videoUrl ??
+            submissionData.file_url ??
+            submissionData.fileUrl ??
+            submissionData.signed_url ??
+            submissionData.signedUrl ??
+            submissionData.url ??
+            (s as any)?.media_url ??
+            (s as any)?.mediaUrl ??
+            (s as any)?.video_url ??
+            (s as any)?.videoUrl ??
+            (s as any)?.file_url ??
+            (s as any)?.fileUrl ??
+            (s as any)?.signed_url ??
+            (s as any)?.signedUrl ??
+            (s as any)?.url ??
+            submissionData ??
+            s ??
+            undefined,
+          'video'
+        );
 
         const thumbnailUrl =
           toAbsoluteUrl(directThumb) ||
@@ -335,7 +490,6 @@ export const getPlayedSceneGridsForUser = async (userId: string) => {
         } satisfies SceneTile;
       });
 
-      // A scene is "played for the user" when any of their submissions are marked as played / used.
       if (!tiles.some((t) => t.isUser)) continue;
 
       const createdAt = scene.created_at ? new Date(scene.created_at).toISOString() : new Date().toISOString();
@@ -403,7 +557,6 @@ export const getVideos = async (userId: string, page: number, limit = 10) => {
   return items;
 };
 
-// Back-compat (older API)
 export const getUserLibrary = async () => {
   const { data } = await apiClient.get<any>('/user/library');
   const items = extractArray(data) as ApiLibraryItem[];
@@ -457,15 +610,35 @@ const EVENT_STATUS_ID: Record<EventStatusFilter, number> = {
 
 function parseCheeritDateTime(input?: string | null): Date {
   if (!input) return new Date(0);
-  const match = input.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*(am|pm)$/i);
-  if (!match) return new Date(input);
-  const [, dd, mm, yyyy, hh, min, meridiem] = match;
-  let hours = Number(hh);
-  const minutes = Number(min);
-  const isPm = meridiem.toLowerCase() === 'pm';
-  if (hours === 12) hours = 0;
-  if (isPm) hours += 12;
-  return new Date(Number(yyyy), Number(mm) - 1, Number(dd), hours, minutes, 0, 0);
+  const trimmed = input.trim();
+
+  // dd/mm/yyyy hh:mm AM/PM
+  const dmy = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+  if (dmy) {
+    const [, dd, mm, yyyy, hh, min, meridiem] = dmy;
+    let hours = Number(hh);
+    const minutes = Number(min);
+    const isPm = meridiem.toLowerCase() === 'pm';
+    if (hours === 12) hours = 0;
+    if (isPm) hours += 12;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd), hours, minutes, 0, 0);
+  }
+
+  // yyyy-mm-dd hh:mm AM/PM (used by `/events/mobile/upcoming`)
+  const ymd = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+  if (ymd) {
+    const [, yyyy, mm, dd, hh, min, meridiem] = ymd;
+    let hours = Number(hh);
+    const minutes = Number(min);
+    const isPm = meridiem.toLowerCase() === 'pm';
+    if (hours === 12) hours = 0;
+    if (isPm) hours += 12;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd), hours, minutes, 0, 0);
+  }
+
+  // Fallback parse (can be invalid depending on browser)
+  const parsed = new Date(trimmed);
+  return Number.isFinite(parsed.getTime()) ? parsed : new Date(0);
 }
 
 const splitTeamsFromName = (eventName?: string | null, shortName?: string | null): { a: string; b: string } => {
@@ -504,6 +677,10 @@ const svgDataUriForTeam = (teamName: string) => {
 const toMatch = (event: ApiEvent): Match => {
   const teams = splitTeamsFromName(event.event_name, event.event_short_name);
   const start = parseCheeritDateTime(event.start_time);
+  const startTime = Number.isFinite(start.getTime()) ? start.toISOString() : new Date(0).toISOString();
+
+  const teamA = event.teams?.[0];
+  const teamB = event.teams?.[1];
 
   const statusName = (event.eventstatus?.name ?? '').toLowerCase().trim();
   const mappedStatus: Match['status'] =
@@ -515,31 +692,133 @@ const toMatch = (event: ApiEvent): Match => {
 
   return {
     id: event.event_id,
-    teamA: { name: teams.a, logo: event.event_image_url || svgDataUriForTeam(teams.a) },
-    teamB: { name: teams.b, logo: event.event_image_url || svgDataUriForTeam(teams.b) },
+    teamA: { name: teamA?.name ?? teams.a, logo: teamA?.logo_url || svgDataUriForTeam(teams.a) },
+    teamB: { name: teamB?.name ?? teams.b, logo: teamB?.logo_url || svgDataUriForTeam(teams.b) },
     status: mappedStatus,
-    startTime: start.toISOString(),
+    startTime,
   };
+};
+
+export const getSportsEventTypes = async (type?: 'upcoming' | 'completed') => {
+  const { data } = await apiClient.get<any>('/eventtype/sports', {
+    params: type ? { type } : undefined,
+  });
+  const items = extractArray(data) as ApiEventType[];
+  return items
+    .filter((t) => t && t.is_active !== false)
+    .map((t) => ({
+      id: Number(t.eventtype_id),
+      name: String(t.name ?? 'Sport'),
+      iconUrl: toAbsoluteUrl(t.icon_url),
+      count: typeof t.count === 'number' ? t.count : undefined,
+    }))
+    .filter((t) => Number.isFinite(t.id) && t.id > 0);
+};
+
+const withForcedStatus = (matches: Match[], status: Match['status']) => matches.map((m) => ({ ...m, status }));
+
+const dedupeMatchesById = (matches: Match[]) => {
+  const seen = new Set<string>();
+  const out: Match[] = [];
+  for (const m of matches) {
+    const id = String(m?.id ?? '').trim();
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ ...m, id });
+  }
+  return out;
+};
+
+const liveMatchesCache = new Map<number, { ts: number; matches: Match[] }>();
+const LIVE_CACHE_TTL_MS = 30_000;
+
+export const getLiveMatchesByEventType = async (eventtypeId: number) => {
+  const cached = liveMatchesCache.get(eventtypeId);
+  if (cached && Date.now() - cached.ts < LIVE_CACHE_TTL_MS) return cached.matches;
+
+  const { data } = await apiClient.get<any>('/events/mobile/live', { params: { eventtype_id: eventtypeId } });
+  const events = extractArray(data) as ApiEvent[];
+  const now = Date.now();
+
+  const liveEvents = events.filter((e) => {
+    const start = parseCheeritDateTime((e as any)?.cheer_submission_start_time ?? e.start_time);
+    const end = parseCheeritDateTime((e as any)?.cheer_submission_end_time ?? e.end_time);
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    if (!Number.isFinite(startMs) || startMs <= 0) return false;
+    if (now < startMs) return false;
+    if (Number.isFinite(endMs) && endMs > 0 && now > endMs) return false;
+    return true;
+  });
+
+  const matches = dedupeMatchesById(withForcedStatus(liveEvents.map(toMatch).filter((m) => m.id), 'live'));
+  liveMatchesCache.set(eventtypeId, { ts: Date.now(), matches });
+  return matches;
+};
+
+export const getLiveEventTypesWithMatches = async () => {
+  // `/eventtype/sports` does not support `type=live`, so we derive "live categories"
+  // by actually checking which event types have live matches right now.
+  const types = await getSportsEventTypes();
+  const settled = await Promise.allSettled(
+    types.map(async (t) => {
+      const matches = await getLiveMatchesByEventType(t.id);
+      return { type: t, matches } satisfies EventTypeWithMatches;
+    })
+  );
+
+  return settled
+    .flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
+    .filter((x) => x.matches.length > 0);
+};
+
+export const getUpcomingMatchesByEventType = async (eventtypeId: number) => {
+  const { data } = await apiClient.get<any>('/events/mobile/upcoming', { params: { eventtype_id: eventtypeId } });
+  const events = extractArray(data) as ApiEvent[];
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const matches = events
+    .map(toMatch)
+    .filter((m) => {
+      if (!m.id) return false;
+      const startMs = new Date(m.startTime).getTime();
+      return Number.isFinite(startMs) && startMs >= startOfToday.getTime();
+    });
+  return withForcedStatus(matches, 'upcoming');
+};
+
+export const getCompletedMatchesByEventType = async (eventtypeId: number) => {
+  const { data } = await apiClient.get<any>('/events/completed', { params: { eventtype_id: eventtypeId } });
+  const events = extractArray(data) as ApiEvent[];
+  return withForcedStatus(events.map(toMatch).filter((m) => m.id), 'completed');
 };
 
 export const getEventList = async (status?: EventStatusFilter) => {
   const eventstatus_id = status ? EVENT_STATUS_ID[status] : undefined;
 
-  const { data } = await apiClient.get<ApiEventListResponse | ApiEvent[]>('/events', {
+  if (status === 'upcoming' || status === 'scheduled') {
+    const types = await getSportsEventTypes('upcoming');
+    const results = await Promise.all(types.map((t) => getUpcomingMatchesByEventType(t.id)));
+    return results.flat();
+  }
+  if (status === 'completed') {
+    const types = await getSportsEventTypes('completed');
+    const results = await Promise.all(types.map((t) => getCompletedMatchesByEventType(t.id)));
+    return results.flat();
+  }
+
+  const endpoint =
+    status === 'live'
+        ? '/events/mobile/live'
+        : '/events';
+
+  const { data } = await apiClient.get<ApiEventListResponse | ApiEvent[] | any>(endpoint, {
     params: eventstatus_id ? { eventstatus_id } : undefined,
   });
 
-  const events = Array.isArray(data) ? data : data.data;
+  const events = (extractArray(data) as ApiEvent[]) ?? [];
   const matches = events.map(toMatch);
-
-  if (status === 'upcoming' || status === 'scheduled') {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    return matches.filter((match) => {
-      const start = new Date(match.startTime);
-      return Number.isFinite(start.getTime()) && start.getTime() >= startOfToday.getTime();
-    });
-  }
 
   return matches;
 };

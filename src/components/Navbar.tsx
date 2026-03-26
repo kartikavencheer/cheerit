@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, LogIn, Video, Film, Home, Menu, X, Sun, Moon } from 'lucide-react';
+import { User, LogIn, Video, Film, Home, Sun, Moon } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../context/ThemeContext';
 import { LoginPopup } from './Popup';
 
@@ -14,7 +13,6 @@ export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
 
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   useEffect(() => {
@@ -45,31 +43,30 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <nav
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled ? 'pt-4' : 'pt-6'
-      )}
-    >
-      <div
-        className={cn(
-          'page-container transition-all duration-300',
-          isScrolled
-            ? 'glass rounded-full px-6 py-3 shadow-2xl shadow-black/50 border-border'
-            : 'bg-transparent px-2 py-2'
-        )}
+    <>
+      <nav
+       className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       >
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 group">
-              <img
-                src="/images/cheeritlogo.png"
-                alt="CheerIT Logo"
-                className="h-10 w-auto"
-              />
-            </Link>
-          </div>
+       <div
+  className={cn(
+    'transition-all duration-300 w-full',
+    
+    isScrolled
+      ? 'page-container glass rounded-full px-6 py-3 shadow-2xl shadow-black/40 border border-border backdrop-blur-xl'
+      : 'w-full bg-white/80 backdrop-blur-md border-b border-black/5 px-6 py-3'
+  )}
+>
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center">
+              <Link to="/" className="flex items-center gap-2 group">
+                <img
+                  src="/images/cheeritlogo.png"
+                  alt="CheerIT Logo"
+                  className="h-10 w-auto"
+                />
+              </Link>
+            </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-1">
@@ -168,71 +165,61 @@ export const Navbar: React.FC = () => {
   }}
 />
 
-          {/* Mobile Buttons */}
-          <div className="md:hidden flex items-center">
-            <button onClick={toggleTheme} className="p-2">
-              {theme === 'dark' ? (
-                <Sun className="w-6 h-6" />
-              ) : (
-                <Moon className="w-6 h-6" />
-              )}
-            </button>
+            {/* Mobile Right (Theme only) */}
+            <div className="md:hidden flex items-center">
+              <button onClick={toggleTheme} className="p-2">
+                {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
+      {/* Mobile Bottom Nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[90]">
+        <div className="mx-3 mb-3 glass rounded-2xl border border-border shadow-2xl shadow-black/30">
+          <div className="grid grid-cols-4">
+            {[
+              { name: 'Home', path: '/', icon: Home, protected: false },
+              { name: 'Library', path: '/library', icon: Video, protected: true },
+              { name: 'Scenes', path: '/played-scenes', icon: Film, protected: true },
+              { name: isAuthenticated ? 'Profile' : 'Login', path: isAuthenticated ? '/profile' : '/login', icon: isAuthenticated ? User : LogIn, protected: isAuthenticated },
+            ].map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={(e) => {
+                    if (!isAuthenticated && item.protected && item.path !== '/login') {
+                      e.preventDefault();
+                      setShowLoginPopup(true);
+                      return;
+                    }
+                    navigate(item.path);
+                  }}
+                  className={cn(
+                    'py-3 px-2 flex flex-col items-center justify-center gap-1 rounded-2xl transition-colors',
+                    isActive ? 'text-primary' : 'text-muted hover:text-foreground'
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-[11px] font-medium">{item.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div className="absolute top-full left-4 right-4 mt-2 glass rounded-2xl p-4 flex flex-col gap-2 shadow-2xl md:hidden">
-            {navLinks.map(
-              (link) =>
-                link.show && (
-                  <Link
-                    key={link.name}
-                    to={link.path}
-                    onClick={(e) => {
-                      handleProtectedNavigation(e, link);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="px-4 py-3 rounded-xl flex items-center gap-3"
-                  >
-                    <link.icon className="w-5 h-5" />
-                    {link.name}
-                  </Link>
-                  
-                )
-            )}
-            
-
-            <div className="h-px bg-white/10 my-2" />
-
-            {isAuthenticated ? (
-              <Link to="/profile" className="px-4 py-3">
-                Profile
-              </Link>
-            ) : (
-              <Link to="/login" className="px-4 py-3 bg-primary text-white rounded-xl">
-                Login
-              </Link>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-    </nav>
-    
+      <LoginPopup
+        isOpen={showLoginPopup}
+        onClose={() => setShowLoginPopup(false)}
+        onLoginClick={() => {
+          setShowLoginPopup(false);
+          navigate('/login');
+        }}
+      />
+    </>
   );
 };
-
