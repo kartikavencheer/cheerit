@@ -89,9 +89,13 @@ export interface Video {
   timestamp: string;
   thumbnailUrl: string;
   videoUrl: string;
-  status?: 'approved' | 'rejected' | 'pending' | 'played';
+  status?: 'approved' | 'rejected' | 'pending' | 'playing' | 'played';
+  mediaType?: 'image' | 'video';
   eventId?: string;
 }
+
+export type LibrarySubmissionStatusFilter = 'APPROVED' | 'REJECTED' | 'PLAYING' | 'PLAYED';
+export type LibraryMediaTypeFilter = 'IMAGE' | 'VIDEO';
 
 export interface PlayedScene {
   id: string;
@@ -107,6 +111,8 @@ type ApiLibraryItem = {
   id?: string | number | null;
   submission_id?: string | number | null;
   submissionId?: string | number | null;
+  media_type?: string | null;
+  mediaType?: string | null;
   matchName?: string | null;
   match_name?: string | null;
   event_name?: string | null;
@@ -234,9 +240,11 @@ const toVideo = (item: ApiLibraryItem): Video => {
   const rawTimestamp = String(item.timestamp ?? item.created_at ?? item.approved_at ?? '');
   const parsed = parseCheeritDateTime(rawTimestamp);
   const timestamp = Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
-  const thumbnailUrl =
-    pluckUrlString(item.thumbnailUrl ?? item.thumbnail_url ?? item.thumbnail ?? item.thumb_url ?? item.thumbUrl, 'image') ?? '';
-  const videoUrl =
+  const rawThumbnailUrl =
+    pluckUrlString(item.thumbnailUrl ?? item.thumbnail_url ?? item.thumbnail ?? item.thumb_url ?? item.thumbUrl, 'image') ??
+    pluckUrlString(item.media_url ?? item.mediaUrl ?? item.video_url ?? item.videoUrl ?? item.file_url ?? item.fileUrl ?? item.url, 'image') ??
+    '';
+  const rawVideoUrl =
     pluckUrlString(
       item.videoUrl ??
         item.video_url ??
@@ -248,21 +256,38 @@ const toVideo = (item: ApiLibraryItem): Video => {
         item.signedUrl ??
         item.url,
       'video'
-    ) ?? '';
+    ) ??
+    '';
+
+  const thumbnailUrl = toAbsoluteUrl(rawThumbnailUrl);
+  const videoUrl = toAbsoluteUrl(rawVideoUrl || rawThumbnailUrl);
   const eventId = item.event_id ?? undefined;
+
+  const mediaTypeRaw = String(item.media_type ?? item.mediaType ?? '').toLowerCase().trim();
+  const mediaType: Video['mediaType'] = mediaTypeRaw.includes('image')
+    ? 'image'
+    : mediaTypeRaw.includes('video')
+      ? 'video'
+      : rawVideoUrl
+        ? 'video'
+        : rawThumbnailUrl
+          ? 'image'
+          : undefined;
 
   const statusRaw = String(item.approval_status ?? item.status ?? '').toLowerCase().trim();
   const submissionStatusRaw = String(item.submission_status ?? '').toLowerCase().trim();
   const status: Video['status'] =
     item.is_played === true || statusRaw.includes('played') || submissionStatusRaw.includes('played')
       ? 'played'
+      : statusRaw.includes('playing') || submissionStatusRaw.includes('playing')
+        ? 'playing'
       : item.is_rejected === true || !!item.rejected_at || statusRaw.includes('reject') || submissionStatusRaw.includes('reject')
       ? 'rejected'
       : item.is_approved === true || !!item.approved_at || statusRaw.includes('approve') || submissionStatusRaw.includes('approve')
         ? 'approved'
         : 'pending';
 
-  return { id, matchName, timestamp, thumbnailUrl, videoUrl, status, eventId };
+  return { id, matchName, timestamp, thumbnailUrl, videoUrl, status, eventId, mediaType };
 };
 
 const apiOriginFromApiUrl = () => {
@@ -542,18 +567,43 @@ const extractTotal = (payload: any): number | undefined => {
   return undefined;
 };
 
-export const getVideosPage = async (userId: string, page: number, limit = 10) => {
+export const getVideosPage = async (
+  userId: string,
+  page: number,
+  limit = 10,
+  filters?: { status?: LibrarySubmissionStatusFilter; mediaType?: LibraryMediaTypeFilter }
+) => {
   const { data } = await apiClient.get<any>('/submissions/mobile', {
-    params: { user_id: userId, page, limit },
+    params: {
+      user_id: userId,
+      page,
+      limit,
+      status: filters?.status,
+      media_type: filters?.mediaType,
+    },
   });
 
   const items = extractArray(data) as ApiLibraryItem[];
   const total = extractTotal(data);
-  return { items: items.map(toVideo).filter((v) => v.id && v.videoUrl), total };
+
+  const mapped = items.map(toVideo).filter((v) => v.id);
+  const filtered =
+    filters?.mediaType === 'IMAGE'
+      ? mapped.filter((v) => (v.mediaType ?? '').toLowerCase() === 'image' && (v.videoUrl || v.thumbnailUrl))
+      : filters?.mediaType === 'VIDEO'
+        ? mapped.filter((v) => (v.mediaType ?? '').toLowerCase() === 'video' && v.videoUrl)
+        : mapped.filter((v) => v.videoUrl);
+
+  return { items: filtered, total };
 };
 
-export const getVideos = async (userId: string, page: number, limit = 10) => {
-  const { items } = await getVideosPage(userId, page, limit);
+export const getVideos = async (
+  userId: string,
+  page: number,
+  limit = 10,
+  filters?: { status?: LibrarySubmissionStatusFilter; mediaType?: LibraryMediaTypeFilter }
+) => {
+  const { items } = await getVideosPage(userId, page, limit, filters);
   return items;
 };
 

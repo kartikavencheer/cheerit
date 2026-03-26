@@ -207,7 +207,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
             <img
               src="public/images/VS BLUE.png"
               alt="VS"
-              className="w-16 h-16 object-contain relative z-10"
+              className="w-20 h-20 object-contain relative z-10"
               style={{ filter: 'drop-shadow(0 0 25px rgba(255,106,0,0.55))' }}
             />
           </div>

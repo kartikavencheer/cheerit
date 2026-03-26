@@ -1,15 +1,17 @@
 import React, { useEffect } from 'react';
-import { X, Play, Info } from 'lucide-react';
+import { X, Play, Info, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface VideoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  videoUrl: string;
+  videoUrl?: string;
+  imageUrl?: string;
+  mediaType?: 'video' | 'image';
   title: string;
 }
 
-export const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, videoUrl, title }) => {
+export const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, videoUrl, imageUrl, mediaType, title }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -43,7 +45,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, videoUr
             <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-6 2xl:p-8 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 2xl:w-12 2xl:h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 backdrop-blur-md">
-                  <Play className="w-4 h-4 2xl:w-5 2xl:h-5 text-primary ml-1" />
+                  {mediaType === 'image' ? (
+                    <ImageIcon className="w-4 h-4 2xl:w-5 2xl:h-5 text-primary" />
+                  ) : (
+                    <Play className="w-4 h-4 2xl:w-5 2xl:h-5 text-primary ml-1" />
+                  )}
                 </div>
                 <h3 className="text-white font-bold text-lg 2xl:text-xl leading-tight drop-shadow-md">{title}</h3>
               </div>
@@ -57,14 +63,19 @@ export const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, videoUr
 
             {/* Video Container */}
             <div className="relative w-full bg-black flex items-center justify-center flex-shrink-0">
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                className="block w-full h-auto max-h-[70vh] object-contain"
-              >
-                Your browser does not support the video tag.
-              </video>
+              {mediaType === 'image' ? (
+                imageUrl ? (
+                  <img src={imageUrl} alt={title} className="block w-full h-auto max-h-[70vh] object-contain" />
+                ) : (
+                  <div className="p-10 text-center text-gray-400">Image unavailable</div>
+                )
+              ) : videoUrl ? (
+                <video src={videoUrl} controls autoPlay className="block w-full h-auto max-h-[70vh] object-contain">
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                <div className="p-10 text-center text-gray-400">Video unavailable</div>
+              )}
             </div>
 
             {/* Details Footer */}
