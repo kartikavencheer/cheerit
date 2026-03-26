@@ -68,7 +68,7 @@ export const Library: React.FC = () => {
             <div className="mt-4 h-10 bg-surface-hover rounded-xl animate-pulse" />
           ) : (
             <>
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 sm:max-w-md">
+              <div className="mt-4 flex items-center gap-2 overflow-x-auto flex-nowrap py-1">
                 {MEDIA_TYPES.map((t) => {
                   const active = mediaType === t;
                   const Icon = t === 'IMAGE' ? ImageIcon : VideoIcon;
@@ -81,9 +81,9 @@ export const Library: React.FC = () => {
                         setPage(1);
                       }}
                       className={[
-                        'flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-sm font-semibold transition-colors',
+                        'shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
                         active
-                          ? 'bg-primary text-white border-primary'
+                          ? 'bg-primary/15 text-foreground border-primary/60'
                           : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
                       ].join(' ')}
                     >
@@ -92,9 +92,9 @@ export const Library: React.FC = () => {
                     </button>
                   );
                 })}
-              </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="shrink-0 w-px h-7 bg-white/10 mx-1" />
+
                 {STATUSES.map((s) => {
                   const active = status === s;
                   return (
@@ -106,9 +106,9 @@ export const Library: React.FC = () => {
                         setPage(1);
                       }}
                       className={[
-                        'px-4 py-2 rounded-xl border text-sm font-semibold transition-colors',
+                        'shrink-0 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
                         active
-                          ? `bg-white/10 text-white ${statusBorder(s)}`
+                          ? `bg-primary/15 text-foreground ${statusBorder(s)}`
                           : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
                       ].join(' ')}
                     >
