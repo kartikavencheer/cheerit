@@ -1,12 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import axios from 'axios';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Home } from './pages/Home';
+import { Login } from './pages/Login';
 import { Profile } from './pages/Profile';
 import { Library } from './pages/Library';
 import { PlayedScenes } from './pages/PlayedScenes';
@@ -15,7 +17,11 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error) => {
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+        if (typeof status === 'number' && status >= 500) return false;
+        return failureCount < 1;
+      },
     },
   },
 });
@@ -30,6 +36,7 @@ const AppShell: React.FC = () => {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/profile"
               element={

@@ -59,7 +59,7 @@ export const Library: React.FC = () => {
               >
                 <div className="relative bg-black/5">
                   <img
-                    src={video.thumbnailUrl}
+                    src={video.thumbnailUrl || undefined}
                     alt={video.matchName}
                     className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
                   />

@@ -27,10 +27,8 @@ export const Profile: React.FC = () => {
   const { data: scenesMeta, isLoading: isLoadingScenes, isError: isScenesError } = useQuery({
     queryKey: ['profile', 'stats', 'scenes', user.id],
     queryFn: () => getPlayedScenesPage(1, 1),
-    refetchOnMount: 'always',
-    refetchOnReconnect: true,
-    refetchOnWindowFocus: true,
-    refetchInterval: 15000,
+    retry: false,
+    staleTime: 60_000,
   });
 
   const memberSince = parseMemberSince(user.createdAt);

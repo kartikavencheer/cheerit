@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { apiClient, UserProfile } from '../api/client';
 import { toast } from 'sonner';
@@ -16,41 +16,73 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('cheerit_token'));
   const [isLoading, setIsLoading] = useState(true);
+  const didBootRef = useRef(false);
+
+  const clearSession = (opts?: { toastMessage?: string }) => {
+    localStorage.removeItem('cheerit_token');
+    localStorage.removeItem('cheerit_refresh_token');
+    localStorage.removeItem('cheerit_user');
+    setUser(null);
+    setToken(null);
+    if (opts?.toastMessage) toast.info(opts.toastMessage);
+  };
 
   useEffect(() => {
+    // React StrictMode runs effects twice in development. Guard to avoid duplicate API calls.
+    if (didBootRef.current) return;
+    didBootRef.current = true;
+
+    let isMounted = true;
+
     const checkAuth = async () => {
       const token = localStorage.getItem('cheerit_token');
       const savedUser = localStorage.getItem('cheerit_user');
+      if (isMounted) setToken(token);
+
+      if (!token) {
+        localStorage.removeItem('cheerit_refresh_token');
+        localStorage.removeItem('cheerit_user');
+        if (isMounted) setUser(null);
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
       if (savedUser) {
         try {
-          setUser(JSON.parse(savedUser) as UserProfile);
+          const parsed = JSON.parse(savedUser) as UserProfile;
+          if (isMounted) setUser(parsed);
         } catch {
           localStorage.removeItem('cheerit_user');
         }
       }
 
-      if (token) {
-        try {
-          const { data } = await apiClient.get<any>('/users/me');
-          const profile = toUserProfile(data);
-          setUser(profile);
-          localStorage.setItem('cheerit_user', JSON.stringify(profile));
-        } catch (error) {
-          const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-          console.error('Auth check failed:', error);
-          if (status === 401 || status === 403) {
-            localStorage.removeItem('cheerit_token');
-            localStorage.removeItem('cheerit_refresh_token');
-            localStorage.removeItem('cheerit_user');
-            setUser(null);
-          }
-        }
-      }
-
-      setIsLoading(false);
+      if (isMounted) setIsLoading(false);
     };
     checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const interceptorId = apiClient.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+        if (status === 401 || status === 403) {
+          clearSession();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      apiClient.interceptors.response.eject(interceptorId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const normalizeMobileNumber = (input: string) => {
@@ -108,20 +140,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       localStorage.setItem('cheerit_token', token);
+      setToken(token);
       if (data.refreshToken) localStorage.setItem('cheerit_refresh_token', data.refreshToken);
 
       const nextUser = toUserProfile(data.user);
       setUser(nextUser);
       localStorage.setItem('cheerit_user', JSON.stringify(nextUser));
-
-      try {
-        const { data: me } = await apiClient.get<any>('/users/me');
-        const fullProfile = toUserProfile(me);
-        setUser(fullProfile);
-        localStorage.setItem('cheerit_user', JSON.stringify(fullProfile));
-      } catch {
-        // Non-fatal: keep the user from verify response
-      }
       toast.success(data.message || 'Login successful!');
     } catch (error) {
       console.error('Login failed:', error);
@@ -132,15 +156,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('cheerit_token');
-    localStorage.removeItem('cheerit_refresh_token');
-    localStorage.removeItem('cheerit_user');
-    setUser(null);
-    toast.info('Logged out successfully.');
+    clearSession({ toastMessage: 'Logged out successfully.' });
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, sendOtp, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user && !!token, isLoading, login, sendOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

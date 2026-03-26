@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { getEventList } from '../api/client';
@@ -8,12 +8,7 @@ import { Smartphone, CheckCircle, ShieldCheck, QrCode, Video, Film, Calendar as 
 import { Link } from 'react-router-dom';
 
 export const Home: React.FC = () => {
-  const { isAuthenticated, sendOtp, login } = useAuth();
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [agreed, setAgreed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const { data: liveMatches, isLoading: isLoadingLive } = useQuery({
     queryKey: ['events', 'live'],
@@ -32,28 +27,6 @@ export const Home: React.FC = () => {
     const element = document.getElementById(id);
     if (!element) return;
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agreed) return;
-    setIsLoading(true);
-    try {
-      await sendOtp(phone);
-      setStep('otp');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      await login(phone, otp);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -151,53 +124,12 @@ export const Home: React.FC = () => {
               {!isAuthenticated ? (
                 <div className="bg-white rounded-2xl p-6 shadow-xl max-w-md mx-auto">
 
-                  <h2 className="text-xl font-bold text-center mb-4">
-                    Login to CheerIT
-                  </h2>
+                  <h2 className="text-xl font-bold text-center mb-2">Login to CheerIT</h2>
+                  <p className="text-sm text-gray-600 text-center mb-4">Access your Library and Played Scenes.</p>
 
-                  {step === 'phone' ? (
-                    <form onSubmit={handleSendOtp} className="space-y-4">
-
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) =>
-                          setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
-                        }
-                        placeholder="Enter Mobile Number"
-                        className="w-full px-4 py-3 border rounded-lg"
-                      />
-
-                      <button
-                        type="submit"
-                        className="w-full bg-primary text-white py-3 rounded-lg"
-                      >
-                        Get OTP
-                      </button>
-
-                    </form>
-                  ) : (
-                    <form onSubmit={handleLogin} className="space-y-4">
-
-                      <input
-                        type="text"
-                        value={otp}
-                        onChange={(e) =>
-                          setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
-                        }
-                        placeholder="Enter OTP"
-                        className="w-full px-4 py-3 border rounded-lg text-center"
-                      />
-
-                      <button
-                        type="submit"
-                        className="w-full bg-primary text-white py-3 rounded-lg"
-                      >
-                        Verify
-                      </button>
-
-                    </form>
-                  )}
+                  <Link to="/login" className="block w-full bg-primary text-white py-3 rounded-lg text-center">
+                    Login
+                  </Link>
                 </div>
               ) : (
                 <div className="glass-card p-8 text-center">
