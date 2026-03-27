@@ -12,7 +12,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 
 const MEDIA_TYPES: LibraryMediaTypeFilter[] = ['VIDEO', 'IMAGE'];
-const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYING', 'PLAYED'];
+const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYED'];
 
 const statusBorder = (status: LibrarySubmissionStatusFilter) => {
   if (status === 'APPROVED') return 'border-green-500/50';
@@ -23,9 +23,9 @@ const statusBorder = (status: LibrarySubmissionStatusFilter) => {
 
 const statusLabel = (status: LibrarySubmissionStatusFilter) => {
   if (status === 'APPROVED') return 'Approved';
-  if (status === 'REJECTED') return 'Rejected';
+  if (status === 'REJECTED') return 'Denied';
   if (status === 'PLAYING') return 'Playing';
-  if (status === 'PLAYED') return 'Played';
+  if (status === 'PLAYED') return 'Live';
   return status;
 };
 
