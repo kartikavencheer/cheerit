@@ -21,7 +21,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
   cardShadow: '0 6px 20px rgba(0,0,0,0.06)',
 
   // Hover glow (subtle)
-  hoverGlow: 'radial-gradient(ellipse at 50% 100%, rgba(255,106,0,0.06) 0%, transparent 70%)',
+  hoverGlow: 'radial-gradient(ellipse at 50% 100%, rgba(31,111,235,0.06) 0%, transparent 70%)',
 
   // Header
   headerBg: 'rgba(255,255,255,0.9)',
@@ -54,7 +54,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
   footerTextColor: 'rgba(0,0,0,0.55)',
 
   // Glow blob
-  logoBlobColor: 'rgba(255,106,0,0.15)',
+  logoBlobColor: 'rgba(31,111,235,0.15)',
 };
 
   return (
@@ -88,7 +88,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
       {!isDark && (
         <div
           className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,106,0,0.35), transparent)' }}
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(31,111,235,0.35), transparent)' }}
         />
       )}
 
@@ -100,9 +100,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
         <div className="flex items-center gap-2.5">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(255,106,0,0.12)', border: '1px solid rgba(255,106,0,0.25)' }}
+            style={{ background: 'rgba(31,111,235,0.12)', border: '1px solid rgba(31,111,235,0.25)' }}
           >
-            <Trophy className="w-3.5 h-3.5" style={{ color: '#FF6A00' }} />
+            <Trophy className="w-3.5 h-3.5" style={{ color: '#1f6feb' }} />
           </div>
           <span
             className="text-xs font-bold tracking-[0.18em] uppercase"
@@ -208,7 +208,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
               src="/images/VS BLUE.png"
               alt="VS"
               className="w-16 h-16 sm:w-20 sm:h-20 object-contain relative z-10"
-              style={{ filter: 'drop-shadow(0 0 25px rgba(255,106,0,0.55))' }}
+              style={{ filter: 'drop-shadow(0 0 25px rgba(31,111,235,0.55))' }}
             />
           </div>
 
@@ -228,7 +228,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
             </div>
           ) : (
             <div className="flex flex-col items-center gap-0.5">
-              <Clock className="w-3.5 h-3.5" style={{ color: '#FF6A00' }} />
+              <Clock className="w-3.5 h-3.5" style={{ color: '#1f6feb' }} />
               <span
                 className="text-xs font-bold tracking-wider"
                 style={{
@@ -304,7 +304,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
         className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5"
         style={{ borderTop: t.footerBorder, background: t.footerBg }}
       >
-        <Zap className="w-3.5 h-3.5" style={{ color: '#FF6A00' }} />
+        <Zap className="w-3.5 h-3.5" style={{ color: '#1f6feb' }} />
         <span
           className="text-xs font-semibold tracking-[0.15em] uppercase"
           style={{
@@ -321,7 +321,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
       {/* Bottom accent line */}
       <div
         className="h-[2px] w-full opacity-0 group-hover:opacity-100 transition-all duration-500"
-        style={{ background: 'linear-gradient(90deg, transparent, #FF6A00, transparent)' }}
+        style={{ background: 'linear-gradient(90deg, transparent, #1f6feb, transparent)' }}
       />
     </motion.div>
   );

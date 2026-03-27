@@ -159,7 +159,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                   <div
                     key={tile?.tileId ?? idx}
                     className={`relative rounded-2xl overflow-hidden border bg-black/40 ${
-                      tile?.isUser ? 'border-primary/70 shadow-[0_0_0_1px_rgba(255,106,0,0.35)]' : 'border-white/10'
+                      tile?.isUser ? 'border-primary/70 shadow-[0_0_0_1px_rgba(31,111,235,0.35)]' : 'border-white/10'
                     }`}
                   >
                     {tile?.videoUrl && !tileErrors[tile.tileId] ? (

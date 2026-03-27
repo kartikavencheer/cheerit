@@ -42,7 +42,7 @@ export const Profile: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="glass-card overflow-hidden"
       >
-        <div className="h-32 bg-gradient-to-r from-primary to-orange-400 relative">
+        <div className="h-32 bg-gradient-to-r from-primary to-blue-400 relative">
           <div className="absolute -bottom-12 left-6 sm:left-8">
             <div className="w-24 h-24 2xl:w-28 2xl:h-28 rounded-full border-4 border-background bg-surface flex items-center justify-center overflow-hidden shadow-xl">
               {user.avatar ? (

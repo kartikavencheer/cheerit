@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #FF6A00;
-  --color-primary-dark: #E65C00;
+  --color-primary: #1f6feb;
+  --color-primary-dark: #1a5fd1;
 
   /* Default = Light theme */
   --color-background: #f8fafc; /* slate-50 */
@@ -50,8 +50,8 @@
   body {
     @apply bg-background text-foreground font-sans antialiased min-h-screen;
     background-image: 
-      radial-gradient(circle at 0% 0%, rgba(255, 106, 0, 0.10) 0%, transparent 45%),
-      radial-gradient(circle at 100% 100%, rgba(0, 100, 255, 0.10) 0%, transparent 45%);
+      radial-gradient(circle at 0% 0%, rgba(31, 111, 235, 0.12) 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, rgba(96, 165, 250, 0.10) 0%, transparent 45%);
     background-attachment: fixed;
     overflow-x: hidden;
   }
@@ -86,8 +86,8 @@
 
   html[data-theme="dark"] body {
     background-image: 
-      radial-gradient(circle at 0% 0%, rgba(255, 106, 0, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(0, 100, 255, 0.08) 0%, transparent 50%);
+      radial-gradient(circle at 0% 0%, rgba(31, 111, 235, 0.10) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(96, 165, 250, 0.08) 0%, transparent 50%);
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -125,5 +125,5 @@
 }
 
 @utility text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#FF9D00];
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#60A5FA];
 }

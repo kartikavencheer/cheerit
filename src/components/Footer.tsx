@@ -178,7 +178,7 @@ export const Footer: React.FC = () => {
       href={l.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="hover:text-[#FF9D00] transition-colors"
+      className="hover:text-[#60A5FA] transition-colors"
     >
       {l.label}
     </a>

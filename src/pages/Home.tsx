@@ -9,6 +9,7 @@ import {
   type EventType,
 } from '../api/client';
 import { MatchCard } from '../components/MatchCard';
+import { CheerBurst, CheerParticles } from '../components/CheerAnimations';
 import { motion } from 'motion/react';
 import { Smartphone, CheckCircle, ShieldCheck, QrCode, Video, Film, Calendar as CalendarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -157,13 +158,15 @@ export const Home: React.FC = () => {
 
         {/* Background */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/40 z-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/20 to-background/30 z-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/80 z-10" />
           <img 
             src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2000&auto=format&fit=crop" 
-            className="w-full h-full object-cover opacity-30"
+            className="w-full h-full object-cover opacity-80"
           />
         </div>
+
+        <CheerParticles className="z-10 opacity-35" density={14} />
 
         <div className="page-container relative z-20">
 
@@ -193,7 +196,7 @@ export const Home: React.FC = () => {
             <motion.div className="lg:col-span-7 space-y-5">
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                <span className="bg-gradient-to-r from-blue-900 to-blue-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-orange-400 to-yellow-500 bg-clip-text text-transparent">
                   CAPTURE
                 </span>
                 <br />
@@ -207,8 +210,8 @@ export const Home: React.FC = () => {
               </p>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500">Powered by</span>
-                <img src="/images/image.png" className="h-8" />
+                <span className="text-sm text-gray-500">Powered by Avencheer</span>
+                {/* <img src="/images/image.png" className="h-8" /> */}
               </div>
 
               <div className="flex items-center gap-2 text-primary text-sm bg-primary/10 px-3 py-1 rounded-full w-fit">
@@ -218,7 +221,7 @@ export const Home: React.FC = () => {
 
               <div className="flex gap-3">
                 <div className="glass px-4 py-2 rounded-full text-sm flex gap-2 items-center">
-                  <Video className="w-4 h-4 text-orange-500" />
+                  <Video className="w-4 h-4 text-blue-500" />
                   Record
                 </div>
                 <div className="glass px-4 py-2 rounded-full text-sm flex gap-2 items-center">
@@ -273,7 +276,10 @@ export const Home: React.FC = () => {
 
       {/* LIVE MATCHES */}
       <section id="live-matches" className="page-container py-20">
-        <h2 className="text-3xl font-bold mb-6">Live Matches</h2>
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold">Live Matches</h2>
+          <CheerBurst />
+        </div>
 
         {isLoadingLive ? (
           <div>Loading...</div>
