@@ -12,7 +12,12 @@ import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 
 const MEDIA_TYPES: LibraryMediaTypeFilter[] = ['VIDEO', 'IMAGE'];
-const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYING', 'PLAYED'];
+const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYED'];
+
+const statusLabel = (status: LibrarySubmissionStatusFilter) => {
+  if (status === 'PLAYED') return 'LIVE';
+  return status;
+};
 
 const statusBorder = (status: LibrarySubmissionStatusFilter) => {
   if (status === 'APPROVED') return 'border-green-500/50';
@@ -68,54 +73,65 @@ export const Library: React.FC = () => {
             <div className="mt-4 h-10 bg-surface-hover rounded-xl animate-pulse" />
           ) : (
             <>
-              <div className="mt-4 flex items-center gap-2 overflow-x-auto flex-nowrap py-1">
-                {MEDIA_TYPES.map((t) => {
-                  const active = mediaType === t;
-                  const Icon = t === 'IMAGE' ? ImageIcon : VideoIcon;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setMediaType(t);
-                        setPage(1);
-                      }}
-                      className={[
-                        'shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
-                        active
-                          ? 'bg-primary/15 text-foreground border-primary/60'
-                          : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
-                      ].join(' ')}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {t}
-                    </button>
-                  );
-                })}
+              <div className="mt-4 space-y-4">
+                <div>
+                  <div className="text-xs font-semibold text-muted mb-2">Media</div>
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
+                    {MEDIA_TYPES.map((t) => {
+                      const active = mediaType === t;
+                      const Icon = t === 'IMAGE' ? ImageIcon : VideoIcon;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-label={t}
+                          onClick={() => {
+                            setMediaType(t);
+                            setPage(1);
+                          }}
+                          className={[
+                            'flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
+                            active
+                              ? 'bg-primary/15 text-foreground border-primary/60'
+                              : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
+                          ].join(' ')}
+                        >
+                          <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
+                          <span className="hidden sm:inline">{t}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                <div className="shrink-0 w-px h-7 bg-white/10 mx-1" />
+                <div className="h-px bg-white/10" />
 
-                {STATUSES.map((s) => {
-                  const active = status === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => {
-                        setStatus(s);
-                        setPage(1);
-                      }}
-                      className={[
-                        'shrink-0 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
-                        active
-                          ? `bg-primary/15 text-foreground ${statusBorder(s)}`
-                          : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
-                      ].join(' ')}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
+                <div>
+                  <div className="text-xs font-semibold text-muted mb-2">Status</div>
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2">
+                    {STATUSES.map((s) => {
+                      const active = status === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => {
+                            setStatus(s);
+                            setPage(1);
+                          }}
+                          className={[
+                            'px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
+                            active
+                              ? `bg-primary/15 text-foreground ${statusBorder(s)}`
+                              : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
+                          ].join(' ')}
+                        >
+                          {statusLabel(s)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </>
           )}

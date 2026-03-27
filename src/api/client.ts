@@ -573,26 +573,103 @@ export const getVideosPage = async (
   limit = 10,
   filters?: { status?: LibrarySubmissionStatusFilter; mediaType?: LibraryMediaTypeFilter }
 ) => {
-  const { data } = await apiClient.get<any>('/submissions/mobile', {
-    params: {
-      user_id: userId,
-      page,
-      limit,
-      status: filters?.status,
-      media_type: filters?.mediaType,
-    },
-  });
+  const wantStatus = filters?.status?.toLowerCase().trim();
 
+  const applyMediaFilter = (items: Video[]) => {
+    return filters?.mediaType === 'IMAGE'
+      ? items.filter((v) => (v.mediaType ?? '').toLowerCase() === 'image' && (v.videoUrl || v.thumbnailUrl))
+      : filters?.mediaType === 'VIDEO'
+        ? items.filter((v) => (v.mediaType ?? '').toLowerCase() === 'video' && v.videoUrl)
+        : items.filter((v) => v.videoUrl);
+  };
+
+  const applyStatusFilter = (items: Video[]) => {
+    if (!wantStatus) return items;
+    return items.filter((v) => (v.status ?? '').toLowerCase() === wantStatus);
+  };
+
+  const fetchMobileSubmissions = async (pageNo: number, pageSize: number, includeStatusParams: boolean) => {
+    const statusParam = filters?.status;
+    const mediaTypeParam = filters?.mediaType;
+
+    const params: Record<string, any> = {
+      // backend variants
+      user_id: userId,
+      userId,
+      page: pageNo,
+      limit: pageSize,
+      media_type: mediaTypeParam,
+      mediaType: mediaTypeParam,
+    };
+
+    if (includeStatusParams && statusParam) {
+      // some backends filter by `status`, others by `approval_status` / `submission_status`
+      params.status = statusParam;
+      params.approval_status = statusParam;
+      params.submission_status = statusParam;
+    }
+
+    const { data } = await apiClient.get<any>('/submissions/mobile', { params });
+    return data;
+  };
+
+  // PLAYING/PLAYED often aren't supported by backend status filtering (or the backend paginates before filtering),
+  // so do a client-side filtered pagination scan to ensure those tabs actually show data.
+  if (filters?.status === 'PLAYING' || filters?.status === 'PLAYED') {
+    const offset = Math.max(0, (page - 1) * limit);
+    const targetCount = offset + limit;
+
+    const pageItems: Video[] = [];
+    let matchedSeen = 0;
+    let totalMatched: number | undefined = undefined;
+
+    const baseLimit = Math.max(50, limit * 5);
+    const maxPages = 80;
+
+    for (let basePage = 1; basePage <= maxPages; basePage++) {
+      let data: any;
+      try {
+        data = await fetchMobileSubmissions(basePage, baseLimit, false);
+      } catch (err) {
+        console.error('getVideosPage(/submissions/mobile) failed:', err);
+        break;
+      }
+
+      const rawItems = extractArray(data) as ApiLibraryItem[];
+      const mapped = applyMediaFilter(rawItems.map(toVideo).filter((v) => v.id));
+      const matched = applyStatusFilter(mapped);
+
+      for (const v of matched) {
+        if (matchedSeen >= offset && pageItems.length < limit) {
+          pageItems.push(v);
+        }
+        matchedSeen++;
+      }
+
+      const serverTotal = extractTotal(data);
+      const reachedEnd = rawItems.length < baseLimit || (serverTotal != null && basePage * baseLimit >= serverTotal);
+
+      // Stop early if we already know there's a next page of matches.
+      if (!reachedEnd && matchedSeen > targetCount) {
+        totalMatched = undefined;
+        break;
+      }
+
+      if (reachedEnd) {
+        totalMatched = matchedSeen;
+        break;
+      }
+    }
+
+    return { items: pageItems, total: totalMatched };
+  }
+
+  const data = await fetchMobileSubmissions(page, limit, true);
   const items = extractArray(data) as ApiLibraryItem[];
   const total = extractTotal(data);
 
-  const mapped = items.map(toVideo).filter((v) => v.id);
-  const filtered =
-    filters?.mediaType === 'IMAGE'
-      ? mapped.filter((v) => (v.mediaType ?? '').toLowerCase() === 'image' && (v.videoUrl || v.thumbnailUrl))
-      : filters?.mediaType === 'VIDEO'
-        ? mapped.filter((v) => (v.mediaType ?? '').toLowerCase() === 'video' && v.videoUrl)
-        : mapped.filter((v) => v.videoUrl);
+  const mapped = applyMediaFilter(items.map(toVideo).filter((v) => v.id));
+  const filtered = applyStatusFilter(mapped);
 
   return { items: filtered, total };
 };
