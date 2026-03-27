@@ -47,23 +47,26 @@ export const Navbar: React.FC = () => {
       <nav
        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       >
-       <div
-  className={cn(
-    'transition-all duration-300 w-full',
-    
-    isScrolled
-      ? 'page-container glass rounded-full px-6 py-3 shadow-2xl shadow-black/40 border border-border backdrop-blur-xl'
-      : 'w-full bg-white/80 backdrop-blur-md border-b border-black/5 px-6 py-3'
-  )}
->
-          <div className="flex items-center justify-between">
+        <div
+          className={cn(
+            'transition-all duration-300 w-full',
+            isScrolled ? 'bg-transparent' : 'bg-white/80 backdrop-blur-md border-b border-black/5'
+          )}
+        >
+          <div className="page-container">
+            <div
+              className={cn(
+                'flex items-center justify-between gap-3 py-3',
+                isScrolled ? 'glass rounded-full px-4 sm:px-6 shadow-2xl shadow-black/30' : ''
+              )}
+            >
             {/* Logo */}
             <div className="flex items-center">
               <Link to="/" className="flex items-center gap-2 group">
                 <img
                   src="/images/cheeritlogo.png"
                   alt="CheerIT Logo"
-                  className="h-10 w-auto"
+                  className="h-9 sm:h-10 w-auto"
                 />
               </Link>
             </div>
@@ -156,27 +159,24 @@ export const Navbar: React.FC = () => {
               
             )}
           </div>
-          <LoginPopup
-  isOpen={showLoginPopup}
-  onClose={() => setShowLoginPopup(false)}
-  onLoginClick={() => {
-    setShowLoginPopup(false);
-    navigate('/login');
-  }}
-/>
 
             {/* Mobile Right (Theme only) */}
             <div className="md:hidden flex items-center">
-              <button onClick={toggleTheme} className="p-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-2 rounded-full bg-white/5 border border-border text-muted hover:text-foreground"
+              >
                 {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
               </button>
             </div>
+          </div>
           </div>
         </div>
       </nav>
 
       {/* Mobile Bottom Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[90]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[90] pb-[env(safe-area-inset-bottom)]">
         <div className="mx-3 mb-3 glass rounded-2xl border border-border shadow-2xl shadow-black/30">
           <div className="grid grid-cols-4">
             {[

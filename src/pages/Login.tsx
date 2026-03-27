@@ -74,7 +74,7 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen pt-28 pb-20 page-container">
       <div className="max-w-md mx-auto">
-        <div className="glass rounded-2xl p-6 border border-white/10 shadow-2xl">
+        <div className="glass rounded-2xl p-5 sm:p-6 border border-white/10 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-foreground">Login</h1>
             <Link to="/" className="text-sm text-muted hover:text-foreground">
@@ -89,7 +89,7 @@ export const Login: React.FC = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 placeholder="Enter Mobile Number"
-                className="w-full px-4 py-3 border rounded-lg bg-background text-foreground"
+                className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
               <label className="flex items-start gap-3 text-sm text-muted select-none">
@@ -117,7 +117,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={!canRequestOtp}
-                className="w-full bg-primary text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-primary text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 {isSubmitting ? 'Sending...' : 'Get OTP'}
               </button>
@@ -129,7 +129,7 @@ export const Login: React.FC = () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="Enter OTP"
-                className="w-full px-4 py-3 border rounded-lg text-center bg-background text-foreground"
+                className="w-full px-4 py-3 border border-border rounded-lg text-center bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
               {formError ? (
@@ -141,7 +141,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={!canVerifyOtp}
-                className="w-full bg-primary text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-primary text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 {isSubmitting ? 'Verifying...' : 'Verify'}
               </button>
@@ -164,4 +164,3 @@ export const Login: React.FC = () => {
     </div>
   );
 };
-

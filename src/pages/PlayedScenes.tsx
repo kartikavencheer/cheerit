@@ -30,18 +30,18 @@ export const PlayedScenes: React.FC = () => {
 
   return (
     <div className="page-container pt-28 pb-12 max-w-5xl">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl 2xl:text-5xl font-display font-bold text-foreground flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-3xl sm:text-4xl 2xl:text-5xl font-display font-bold text-foreground flex items-center gap-3">
           <Film className="w-8 h-8 2xl:w-10 2xl:h-10 text-primary" />
           Played Scenes
         </h1>
-        <div className="text-gray-400 font-medium bg-surface px-4 py-2 2xl:px-5 2xl:py-2.5 rounded-full border border-border">
+        <div className="self-start sm:self-auto text-gray-400 font-medium bg-surface px-4 py-2 2xl:px-5 2xl:py-2.5 rounded-full border border-border">
           {scenes?.length || 0} Scenes
         </div>
       </div>
 
       {!user?.id ? (
-        <div className="glass-card p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="glass-card p-8 sm:p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">
           <div className="w-20 h-20 bg-surface-hover rounded-full flex items-center justify-center mb-6">
             <Film className="w-10 h-10 text-gray-500" />
           </div>
@@ -66,10 +66,10 @@ export const PlayedScenes: React.FC = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="glass-card p-4 2xl:p-6 rounded-2xl border border-border hover:border-primary/50 transition-all duration-300 group flex items-center gap-6 cursor-pointer"
+                className="glass-card p-4 2xl:p-6 rounded-2xl border border-border hover:border-primary/50 transition-all duration-300 group flex items-center gap-4 sm:gap-6 cursor-pointer"
                 onClick={() => setSelectedSceneId(scene.sceneId)}
               >
-                <div className="w-32 h-20 2xl:w-44 2xl:h-28 rounded-xl overflow-hidden relative shrink-0 border border-border bg-surface-hover">
+                <div className="w-28 h-16 sm:w-32 sm:h-20 2xl:w-44 2xl:h-28 rounded-xl overflow-hidden relative shrink-0 border border-border bg-surface-hover">
                   <div
                     className="grid w-full h-full"
                     style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -155,7 +155,7 @@ export const PlayedScenes: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="glass-card p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="glass-card p-8 sm:p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">
           <div className="w-20 h-20 bg-surface-hover rounded-full flex items-center justify-center mb-6">
             <Film className="w-10 h-10 text-gray-500" />
           </div>

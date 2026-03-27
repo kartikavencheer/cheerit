@@ -230,9 +230,9 @@ export const Home: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div className="bg-white p-2 rounded-lg flex items-center justify-center">
   <img
-    src="/images/qr.png"   // 🔁 change to your image path
+    src="/images/qr.png"
     alt="QR Code"
-    className="w-25 h-25 object-contain"
+    className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
   />
 </div>
                 <span className="text-sm text-primary font-semibold">

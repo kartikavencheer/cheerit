@@ -94,7 +94,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div
-        className="flex items-center justify-between px-6 py-4"
+        className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4"
         style={{ borderBottom: t.headerBorder, background: t.headerBg }}
       >
         <div className="flex items-center gap-2.5">
@@ -144,17 +144,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
       </div>
 
       {/* ── Main Body ──────────────────────────────────────────────────────── */}
-      <div className="px-6 pt-8 pb-6 flex items-center justify-between gap-4">
+      <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-5 sm:pb-6 flex items-center justify-between gap-3 sm:gap-4">
 
         {/* Team A */}
-        <div className="flex flex-col items-center gap-4 flex-1">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 flex-1 min-w-0">
           <motion.div
             whileHover={{ rotate: -4, scale: 1.05 }}
             transition={{ duration: 0.3 }}
             className="relative"
           >
             <div
-              className="w-28 h-28 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden"
+              className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl flex items-center justify-center p-3 sm:p-4 relative overflow-hidden"
               style={{
                 background: t.logoBg,
                 border: t.logoBorder,
@@ -176,7 +176,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
 
           <div className="text-center space-y-1">
             <span
-              className="text-base font-bold leading-tight block"
+              className="text-sm sm:text-base font-bold leading-tight block max-w-[10rem] sm:max-w-none break-words overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] sm:[-webkit-line-clamp:1]"
               style={{
                 color: t.teamNameColor,
                 fontFamily: "'Barlow Condensed', sans-serif",
@@ -202,12 +202,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
         </div>
 
         {/* Center VS */}
-        <div className="flex flex-col items-center justify-center gap-3 w-20 flex-shrink-0">
+        <div className="flex flex-col items-center justify-center gap-2 sm:gap-3 w-16 sm:w-20 flex-shrink-0">
           <div className="relative">
             <img
               src="/images/VS BLUE.png"
               alt="VS"
-              className="w-20 h-20 object-contain relative z-10"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain relative z-10"
               style={{ filter: 'drop-shadow(0 0 25px rgba(255,106,0,0.55))' }}
             />
           </div>
@@ -244,14 +244,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
         </div>
 
         {/* Team B */}
-        <div className="flex flex-col items-center gap-4 flex-1">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 flex-1 min-w-0">
           <motion.div
             whileHover={{ rotate: 4, scale: 1.05 }}
             transition={{ duration: 0.3 }}
             className="relative"
           >
             <div
-              className="w-28 h-28 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden"
+              className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl flex items-center justify-center p-3 sm:p-4 relative overflow-hidden"
               style={{
                 background: t.logoBg,
                 border: t.logoBorder,
@@ -273,7 +273,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
 
           <div className="text-center space-y-1">
             <span
-              className="text-base font-bold leading-tight block"
+              className="text-sm sm:text-base font-bold leading-tight block max-w-[10rem] sm:max-w-none break-words overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] sm:[-webkit-line-clamp:1]"
               style={{
                 color: t.teamNameColor,
                 fontFamily: "'Barlow Condensed', sans-serif",
@@ -301,7 +301,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <div
-        className="flex items-center justify-center gap-2 px-6 py-3.5"
+        className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5"
         style={{ borderTop: t.footerBorder, background: t.footerBg }}
       >
         <Zap className="w-3.5 h-3.5" style={{ color: '#FF6A00' }} />

@@ -50,15 +50,15 @@ export const Library: React.FC = () => {
 
   return (
     <div className="page-container pt-28 pb-12">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl 2xl:text-5xl font-display font-bold text-foreground">My Library</h1>
-        <div className="text-gray-400 font-medium bg-surface px-4 py-2 2xl:px-5 2xl:py-2.5 rounded-full border border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-3xl sm:text-4xl 2xl:text-5xl font-display font-bold text-foreground">My Library</h1>
+        <div className="self-start sm:self-auto text-gray-400 font-medium bg-surface px-4 py-2 2xl:px-5 2xl:py-2.5 rounded-full border border-border">
           {(total ?? videos.length) || 0} {totalLabel}
         </div>
       </div>
 
       {!user?.id ? (
-        <div className="glass-card p-10 text-center rounded-2xl border border-border">
+        <div className="glass-card p-8 sm:p-10 text-center rounded-2xl border border-border">
           <h3 className="text-xl font-display font-bold text-foreground mb-2">Login required</h3>
           <p className="text-muted">Please login to view your library.</p>
         </div>
@@ -232,7 +232,7 @@ export const Library: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="glass-card p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="glass-card p-8 sm:p-12 text-center rounded-2xl border border-border flex flex-col items-center justify-center min-h-[40vh]">
           <div className="w-20 h-20 bg-surface-hover rounded-full flex items-center justify-center mb-6">
             {mediaType === 'IMAGE' ? (
               <ImageIcon className="w-10 h-10 text-gray-500" />

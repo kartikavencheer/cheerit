@@ -43,7 +43,7 @@ export const Profile: React.FC = () => {
         className="glass-card overflow-hidden"
       >
         <div className="h-32 bg-gradient-to-r from-primary to-orange-400 relative">
-          <div className="absolute -bottom-12 left-8">
+          <div className="absolute -bottom-12 left-6 sm:left-8">
             <div className="w-24 h-24 2xl:w-28 2xl:h-28 rounded-full border-4 border-background bg-surface flex items-center justify-center overflow-hidden shadow-xl">
               {user.avatar ? (
                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
@@ -54,8 +54,8 @@ export const Profile: React.FC = () => {
           </div>
         </div>
         
-        <div className="pt-16 pb-8 px-8">
-          <div className="flex justify-between items-start">
+        <div className="pt-16 pb-8 px-5 sm:px-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6">
             <div>
               <h1 className="text-3xl 2xl:text-4xl font-display font-bold text-foreground">{user.name || 'Fan User'}</h1>
               <div className="flex items-center gap-2 text-gray-400 mt-2">
@@ -70,7 +70,7 @@ export const Profile: React.FC = () => {
             
             <button
               onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 2xl:px-5 2xl:py-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors font-medium border border-red-500/20"
+              className="flex items-center gap-2 px-4 py-2 2xl:px-5 2xl:py-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors font-medium border border-red-500/20 w-full sm:w-auto justify-center sm:justify-start"
             >
               <LogOut className="w-4 h-4 2xl:w-5 2xl:h-5" />
               Logout
