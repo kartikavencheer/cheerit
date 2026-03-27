@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import {
   getCompletedMatchesByEventType,
-  getLiveEventTypesWithMatches,
+  getLiveMatches,
   getSportsEventTypes,
   getUpcomingMatchesByEventType,
   type EventType,
@@ -16,26 +16,15 @@ import { Link } from 'react-router-dom';
 export const Home: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
-  const { data: liveByType, isLoading: isLoadingLive } = useQuery({
-    queryKey: ['events', 'live', 'by-eventtype'],
-    queryFn: () => getLiveEventTypesWithMatches(),
+  const { data: liveMatches, isLoading: isLoadingLive } = useQuery({
+    queryKey: ['events', 'live'],
+    queryFn: () => getLiveMatches(),
     staleTime: 60_000,
     refetchOnMount: false,
     refetchOnReconnect: false,
     refetchOnWindowFocus: false,
     retry: false,
   });
-
-  const liveMatches = useMemo(() => {
-    const all = liveByType?.flatMap((x) => x.matches) ?? [];
-    const byId = new Map<string, (typeof all)[number]>();
-    for (const m of all) {
-      const id = String(m?.id ?? '').trim();
-      if (!id) continue;
-      if (!byId.has(id)) byId.set(id, { ...m, id });
-    }
-    return Array.from(byId.values());
-  }, [liveByType]);
 
   const { data: upcomingTypes } = useQuery({
     queryKey: ['eventtypes', 'sports', 'upcoming'],

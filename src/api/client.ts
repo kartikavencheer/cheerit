@@ -857,48 +857,33 @@ const dedupeMatchesById = (matches: Match[]) => {
   return out;
 };
 
-const liveMatchesCache = new Map<number, { ts: number; matches: Match[] }>();
 const LIVE_CACHE_TTL_MS = 30_000;
+let liveMatchesCache: { ts: number; matches: Match[] } | null = null;
 
-export const getLiveMatchesByEventType = async (eventtypeId: number) => {
-  const cached = liveMatchesCache.get(eventtypeId);
-  if (cached && Date.now() - cached.ts < LIVE_CACHE_TTL_MS) return cached.matches;
+export const getLiveMatches = async () => {
+  if (liveMatchesCache && Date.now() - liveMatchesCache.ts < LIVE_CACHE_TTL_MS) return liveMatchesCache.matches;
 
-  const { data } = await apiClient.get<any>('/events/mobile/live', { params: { eventtype_id: eventtypeId } });
+  // Live matches must come only from `/events/mobile/live` (no extra filtering params).
+  const { data } = await apiClient.get<any>('/events/mobile/live');
   const events = extractArray(data) as ApiEvent[];
-  const now = Date.now();
 
-  const liveEvents = events.filter((e) => {
-    const start = parseCheeritDateTime((e as any)?.cheer_submission_start_time ?? e.start_time);
-    const end = parseCheeritDateTime((e as any)?.cheer_submission_end_time ?? e.end_time);
-    const startMs = start.getTime();
-    const endMs = end.getTime();
-    if (!Number.isFinite(startMs) || startMs <= 0) return false;
-    if (now < startMs) return false;
-    if (Number.isFinite(endMs) && endMs > 0 && now > endMs) return false;
-    return true;
-  });
-
-  const matches = dedupeMatchesById(withForcedStatus(liveEvents.map(toMatch).filter((m) => m.id), 'live'));
-  liveMatchesCache.set(eventtypeId, { ts: Date.now(), matches });
+  // Trust the live endpoint to return live matches; avoid dropping items due to
+  // inconsistent/empty start/end timestamps across event types.
+  const matches = dedupeMatchesById(withForcedStatus(events.map(toMatch).filter((m) => m.id), 'live'));
+  liveMatchesCache = { ts: Date.now(), matches };
   return matches;
 };
 
 export const getLiveEventTypesWithMatches = async () => {
-  // `/eventtype/sports` does not support `type=live`, so we derive "live categories"
-  // by actually checking which event types have live matches right now.
-  const types = await getSportsEventTypes();
-  const settled = await Promise.allSettled(
-    types.map(async (t) => {
-      const matches = await getLiveMatchesByEventType(t.id);
-      return { type: t, matches } satisfies EventTypeWithMatches;
-    })
-  );
-
-  return settled
-    .flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
-    .filter((x) => x.matches.length > 0);
+  // Backwards-compatible wrapper: live matches are fetched via a single endpoint call.
+  const matches = await getLiveMatches();
+  return matches.length
+    ? ([{ type: { id: 0, name: 'Live' }, matches }] satisfies EventTypeWithMatches[])
+    : [];
 };
+
+// Backwards-compatible: eventtypeId filtering is no longer supported by the live endpoint.
+export const getLiveMatchesByEventType = async (_eventtypeId: number) => getLiveMatches();
 
 export const getUpcomingMatchesByEventType = async (eventtypeId: number) => {
   const { data } = await apiClient.get<any>('/events/mobile/upcoming', { params: { eventtype_id: eventtypeId } });
@@ -935,10 +920,12 @@ export const getEventList = async (status?: EventStatusFilter) => {
     return results.flat();
   }
 
+  if (status === 'live') {
+    return getLiveMatches();
+  }
+
   const endpoint =
-    status === 'live'
-        ? '/events/mobile/live'
-        : '/events';
+    '/events';
 
   const { data } = await apiClient.get<ApiEventListResponse | ApiEvent[] | any>(endpoint, {
     params: eventstatus_id ? { eventstatus_id } : undefined,

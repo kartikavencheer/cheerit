@@ -12,12 +12,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 
 const MEDIA_TYPES: LibraryMediaTypeFilter[] = ['VIDEO', 'IMAGE'];
-const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYED'];
-
-const statusLabel = (status: LibrarySubmissionStatusFilter) => {
-  if (status === 'PLAYED') return 'LIVE';
-  return status;
-};
+const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYING', 'PLAYED'];
 
 const statusBorder = (status: LibrarySubmissionStatusFilter) => {
   if (status === 'APPROVED') return 'border-green-500/50';
@@ -26,9 +21,17 @@ const statusBorder = (status: LibrarySubmissionStatusFilter) => {
   return 'border-white/15';
 };
 
+const statusLabel = (status: LibrarySubmissionStatusFilter) => {
+  if (status === 'APPROVED') return 'Approved';
+  if (status === 'REJECTED') return 'Rejected';
+  if (status === 'PLAYING') return 'Playing';
+  if (status === 'PLAYED') return 'Played';
+  return status;
+};
+
 export const Library: React.FC = () => {
   const { user } = useAuth();
-  const pageSize = 10;
+  const pageSize = 12;
   const [page, setPage] = useState(1);
   const [mediaType, setMediaType] = useState<LibraryMediaTypeFilter>('VIDEO');
   const [status, setStatus] = useState<LibrarySubmissionStatusFilter>('APPROVED');
@@ -66,7 +69,7 @@ export const Library: React.FC = () => {
               <Filter className="w-4 h-4" />
               Filters
             </div>
-            {isFetching && !isLoading ? <div className="text-xs text-muted">Updating…</div> : null}
+            {isFetching && !isLoading ? <div className="text-xs text-muted">Updating...</div> : null}
           </div>
 
           {isLoading ? (
@@ -74,62 +77,66 @@ export const Library: React.FC = () => {
           ) : (
             <>
               <div className="mt-4 space-y-4">
-                <div>
-                  <div className="text-xs font-semibold text-muted mb-2">Media</div>
-                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
-                    {MEDIA_TYPES.map((t) => {
-                      const active = mediaType === t;
-                      const Icon = t === 'IMAGE' ? ImageIcon : VideoIcon;
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          aria-label={t}
-                          onClick={() => {
-                            setMediaType(t);
-                            setPage(1);
-                          }}
-                          className={[
-                            'flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
-                            active
-                              ? 'bg-primary/15 text-foreground border-primary/60'
-                              : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
-                          ].join(' ')}
-                        >
-                          <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
-                          <span className="hidden sm:inline">{t}</span>
-                        </button>
-                      );
-                    })}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-start lg:gap-6">
+                  <div className="text-xs font-semibold text-muted mb-2 lg:mb-0">Media</div>
+                  <div className="p-1 rounded-2xl bg-white/5 border border-white/10 lg:w-auto">
+                    <div className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:gap-1">
+                      {MEDIA_TYPES.map((t) => {
+                        const active = mediaType === t;
+                        const Icon = t === 'IMAGE' ? ImageIcon : VideoIcon;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            aria-label={t}
+                            onClick={() => {
+                              setMediaType(t);
+                              setPage(1);
+                            }}
+                            className={[
+                              'flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors',
+                              active
+                                ? 'bg-primary/15 text-foreground border-primary/60'
+                                : 'bg-transparent hover:bg-white/5 border-transparent text-foreground',
+                            ].join(' ')}
+                          >
+                            <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline">{t}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
                 <div className="h-px bg-white/10" />
 
-                <div>
-                  <div className="text-xs font-semibold text-muted mb-2">Status</div>
-                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2">
-                    {STATUSES.map((s) => {
-                      const active = status === s;
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => {
-                            setStatus(s);
-                            setPage(1);
-                          }}
-                          className={[
-                            'px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-colors',
-                            active
-                              ? `bg-primary/15 text-foreground ${statusBorder(s)}`
-                              : 'bg-white/5 hover:bg-white/10 border-border text-foreground',
-                          ].join(' ')}
-                        >
-                          {statusLabel(s)}
-                        </button>
-                      );
-                    })}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-start lg:gap-6">
+                  <div className="text-xs font-semibold text-muted mb-2 lg:mb-0">Status</div>
+                  <div className="p-1 rounded-2xl bg-white/5 border border-white/10 lg:w-auto">
+                    <div className="grid grid-cols-3 gap-1 sm:flex sm:flex-wrap sm:gap-1">
+                      {STATUSES.map((s) => {
+                        const active = status === s;
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => {
+                              setStatus(s);
+                              setPage(1);
+                            }}
+                            className={[
+                              'px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors',
+                              active
+                                ? `bg-primary/15 text-foreground ${statusBorder(s)}`
+                                : 'bg-transparent hover:bg-white/5 border-transparent text-foreground',
+                            ].join(' ')}
+                          >
+                            {statusLabel(s)}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -140,7 +147,7 @@ export const Library: React.FC = () => {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-          {Array.from({ length: 10 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="glass-card aspect-video animate-pulse bg-surface-hover rounded-2xl"></div>
           ))}
         </div>

@@ -53,6 +53,20 @@
       radial-gradient(circle at 0% 0%, rgba(255, 106, 0, 0.10) 0%, transparent 45%),
       radial-gradient(circle at 100% 100%, rgba(0, 100, 255, 0.10) 0%, transparent 45%);
     background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Mobile performance: avoid `background-attachment: fixed` jank */
+  @media (max-width: 768px) {
+    body {
+      background-attachment: scroll;
+    }
   }
 
   /* Click feedback: show hand cursor for interactive elements */
