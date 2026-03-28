@@ -76,29 +76,43 @@ export const PlayedScenes: React.FC = () => {
                   >
                     {Array.from({ length: panels }).map((_, i) => {
                       const tile = scene.tiles[i];
+                      const isUserTile = !!tile?.isUser;
                       return (
                         <div key={tile?.tileId ?? i} className="relative w-full h-full overflow-hidden">
                           {tile?.thumbnailUrl ? (
                             <img
                               src={tile.thumbnailUrl}
                               alt="Tile"
-                              className="w-full h-full object-contain bg-black/5"
+                              className={[
+                                'w-full h-full object-contain bg-black/5 transition-all duration-200',
+                                isUserTile ? 'opacity-100 blur-0' : 'opacity-30 blur-sm',
+                              ].join(' ')}
                             />
                           ) : tile?.videoUrl ? (
-                            <div className="w-full h-full bg-white/5 flex items-center justify-center text-[10px] text-gray-400">
+                            <div
+                              className={[
+                                'w-full h-full bg-white/5 flex items-center justify-center text-[10px] text-gray-400 transition-all duration-200',
+                                isUserTile ? 'opacity-100 blur-0' : 'opacity-30 blur-sm',
+                              ].join(' ')}
+                            >
                               Video
                             </div>
                           ) : scene.thumbnailUrl ? (
                             <img
                               src={scene.thumbnailUrl}
                               alt="Scene thumbnail"
-                              className="w-full h-full object-cover opacity-60"
+                              className={[
+                                'w-full h-full object-cover transition-all duration-200',
+                                isUserTile ? 'opacity-90 blur-0' : 'opacity-25 blur-sm',
+                              ].join(' ')}
                             />
                           ) : (
-                            <div className="w-full h-full bg-white/5" />
+                            <div className={['w-full h-full bg-white/5 transition-all duration-200', isUserTile ? '' : 'opacity-40 blur-sm'].join(' ')} />
                           )}
                           {tile?.isUser && (
-                            <div className="absolute inset-0 ring-2 ring-primary/70" />
+                            <>
+                              <div className="absolute inset-0 ring-2 ring-primary/70" />
+                            </>
                           )}
                         </div>
                       );
@@ -111,8 +125,13 @@ export const PlayedScenes: React.FC = () => {
                     Scene {scene.sceneName}
                   </h3>
                   <p className="text-sm 2xl:text-base text-gray-400 truncate mt-1">
-                    {scene.matchName || scene.eventId}
+                    {scene.matchName ? `Match: ${scene.matchName}` : 'Match'}
                   </p>
+                  {scene.eventName ? (
+                    <p className="text-xs 2xl:text-sm text-muted truncate mt-1">
+                      Event: {scene.eventName}
+                    </p>
+                  ) : null}
                   
                   <div className="flex items-center gap-4 mt-2 text-xs 2xl:text-sm text-gray-500 font-medium">
                     <div className="flex items-center gap-1">
@@ -127,10 +146,6 @@ export const PlayedScenes: React.FC = () => {
                       <LayoutGrid className="w-3 h-3 2xl:w-3.5 2xl:h-3.5" />
                       {panels} tiles
                     </div>
-                  </div>
-
-                  <div className="mt-2 text-[11px] text-gray-500 font-mono truncate">
-                    Scene ID: {scene.sceneId}
                   </div>
                 </div>
 

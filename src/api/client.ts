@@ -331,6 +331,7 @@ export type PlayedSceneGrid = {
   totalPanels: number;
   thumbnailUrl: string;
   matchName?: string;
+  eventName?: string;
   tiles: SceneTile[];
 };
 
@@ -353,6 +354,43 @@ type ApiMosaicScene = {
     videoUrl?: string | null;
     url?: string | null;
   }[] | null;
+};
+
+const EVENT_NAME_CACHE_TTL_MS = 5 * 60_000;
+const eventNameCache = new Map<string, { ts: number; name?: string }>();
+
+const getEventNameById = async (eventId: string) => {
+  const id = String(eventId || '').trim();
+  if (!id) return undefined;
+
+  const cached = eventNameCache.get(id);
+  if (cached && Date.now() - cached.ts < EVENT_NAME_CACHE_TTL_MS) return cached.name;
+
+  const store = (name?: string) => {
+    const cleaned = String(name ?? '').trim();
+    const value = cleaned || undefined;
+    eventNameCache.set(id, { ts: Date.now(), name: value });
+    return value;
+  };
+
+  try {
+    const { data } = await apiClient.get<any>('/events', { params: { event_id: id } });
+    const events = extractArray(data) as ApiEvent[];
+    const ev = events.find((e) => String((e as any)?.event_id ?? '').trim() === id) ?? events[0];
+    if (ev) return store(ev.event_name ?? (ev as any)?.name);
+  } catch {
+    // ignore
+  }
+
+  try {
+    const { data } = await apiClient.get<any>(`/events/${encodeURIComponent(id)}`);
+    const ev = (Array.isArray(data?.data) ? data.data[0] : data?.data ?? data) as ApiEvent | any;
+    return store(ev?.event_name ?? ev?.name);
+  } catch {
+    // ignore
+  }
+
+  return store(undefined);
 };
 
 type ApiUpcomingCategory = {
@@ -396,7 +434,143 @@ export const getEventSubmissions = async (eventId: string) => {
   return allItems.map(toVideo).filter((v) => v.id);
 };
 
+const isUserSubmissionTile = (tile: any, userId: string) => {
+  if (!tile) return false;
+  if (tile.isUser === true || tile.is_user === true) return true;
+  if (tile.isUserSubmission === true || tile.is_user_submission === true) return true;
+  if (tile.ownedByUser === true || tile.is_owned_by_user === true) return true;
+  const maybeUserId = String(
+    tile.userId ??
+      tile.user_id ??
+      tile.ownerId ??
+      tile.owner_id ??
+      tile.submission_user_id ??
+      tile.submissionUserId ??
+      ''
+  ).trim();
+  if (maybeUserId && maybeUserId === userId) return true;
+  return false;
+};
+
+export const getPlayedScenesForUserViaUserScenes = async (userId: string) => {
+  const { data } = await apiClient.get<any>('/submissions/user-scenes', { params: { userId } });
+  const scenes = extractArray(data);
+
+  const results: PlayedSceneGrid[] = [];
+  for (const raw of scenes) {
+    const sceneId = String(raw?.scene_id ?? raw?.sceneId ?? raw?.id ?? '').trim();
+    const eventId = String(raw?.event_id ?? raw?.eventId ?? raw?.event?.event_id ?? raw?.event?.id ?? '').trim();
+    if (!sceneId) continue;
+
+    const eventNameFromRow = String(raw?.event_name ?? raw?.eventName ?? raw?.event?.event_name ?? raw?.event?.name ?? '').trim();
+    const fetchedEventName = eventNameFromRow || (eventId ? await getEventNameById(eventId) : undefined);
+
+    const submissions = (Array.isArray(raw?.submissions) ? raw.submissions : Array.isArray(raw?.tiles) ? raw.tiles : []) as any[];
+    const tiles: SceneTile[] = submissions.map((s, idx) => {
+      const submissionData = (s as any)?.submission || s || {};
+      const submissionId = String(
+        submissionData.submission_id ??
+          submissionData.submissionId ??
+          submissionData.id ??
+          (s as any).submission_id ??
+          (s as any).submissionId ??
+          (s as any).id ??
+          ''
+      ).trim();
+
+      const directThumb = pluckUrlString(
+        submissionData.thumbnail_url ??
+          submissionData.thumbnailUrl ??
+          submissionData.thumbnail ??
+          submissionData.thumb_url ??
+          submissionData.thumbUrl ??
+          (s as any)?.thumbnail_url ??
+          (s as any)?.thumbnailUrl ??
+          (s as any)?.thumbnail ??
+          submissionData ??
+          s ??
+          undefined,
+        'image'
+      );
+      const directVideo = pluckUrlString(
+        submissionData.media_url ??
+          submissionData.mediaUrl ??
+          submissionData.video_url ??
+          submissionData.videoUrl ??
+          submissionData.file_url ??
+          submissionData.fileUrl ??
+          submissionData.signed_url ??
+          submissionData.signedUrl ??
+          submissionData.url ??
+          (s as any)?.media_url ??
+          (s as any)?.mediaUrl ??
+          (s as any)?.video_url ??
+          (s as any)?.videoUrl ??
+          (s as any)?.file_url ??
+          (s as any)?.fileUrl ??
+          (s as any)?.signed_url ??
+          (s as any)?.signedUrl ??
+          (s as any)?.url ??
+          submissionData ??
+          s ??
+          undefined,
+        'video'
+      );
+
+      return {
+        tileId: String(submissionData.tile_id ?? submissionData.tileId ?? (s as any)?.tile_id ?? (s as any)?.tileId ?? idx),
+        submissionId: submissionId || String(idx),
+        submissionStatus: (submissionData.submission_status ?? submissionData.submissionStatus ?? submissionData.status ?? (s as any)?.status ?? undefined) as
+          | string
+          | undefined,
+        thumbnailUrl: toAbsoluteUrl(directThumb) || undefined,
+        videoUrl: toAbsoluteUrl(directVideo) || undefined,
+        isUser: isUserSubmissionTile(submissionData, userId) || isUserSubmissionTile(s, userId),
+      } satisfies SceneTile;
+    });
+
+    if (!tiles.some((t) => t.isUser)) continue;
+
+    const createdAt = raw?.created_at || raw?.createdAt || raw?.timestamp;
+    const createdIso = createdAt ? new Date(createdAt).toISOString() : new Date().toISOString();
+    const totalPanels =
+      Number(raw?.screen_layout?.total_panels ?? raw?.screenLayout?.totalPanels ?? raw?.total_panels ?? raw?.totalPanels ?? 0) ||
+      Math.max(tiles.length, 1);
+
+    results.push({
+      sceneId,
+      eventId,
+      sceneName: String(raw?.name ?? raw?.scene_name ?? raw?.sceneName ?? 'Scene'),
+      status: raw?.status ?? undefined,
+      createdAt: createdIso,
+      totalPanels,
+      thumbnailUrl: toAbsoluteUrl(raw?.thumbnail ?? raw?.thumbnail_url ?? raw?.thumbnailUrl ?? ''),
+      matchName: (() => {
+        const eventName = String(
+          raw?.event_name ?? raw?.eventName ?? raw?.event?.event_name ?? raw?.event?.name ?? raw?.matchName ?? ''
+        ).trim();
+        const shortName = String(raw?.event_short_name ?? raw?.eventShortName ?? raw?.event?.event_short_name ?? '').trim();
+        const teams = pickTeamNamesFromRow(raw);
+        if (teams) return `${teams.a} vs ${teams.b}`;
+        return matchTitleFromNames(eventName, shortName) || eventName;
+      })(),
+      eventName: fetchedEventName,
+      tiles,
+    });
+  }
+
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return results;
+};
+
 export const getPlayedSceneGridsForUser = async (userId: string) => {
+  try {
+    const viaUserScenes = await getPlayedScenesForUserViaUserScenes(userId);
+    if (viaUserScenes.length) return viaUserScenes;
+  } catch {
+    // Fall back to older multi-endpoint scene + submission reconstruction.
+  }
+
   const pageSize = 200;
   const maxPages = 50;
   const allVideos: Video[] = [];
@@ -530,7 +704,8 @@ export const getPlayedSceneGridsForUser = async (userId: string) => {
         createdAt,
         totalPanels,
         thumbnailUrl: toAbsoluteUrl(scene.thumbnail),
-        matchName: entry.matchName,
+        matchName: matchTitleFromNames(entry.matchName ?? '', null) || entry.matchName,
+        eventName: await getEventNameById(eventId),
         tiles,
       });
     }
@@ -776,6 +951,33 @@ const splitTeamsFromName = (eventName?: string | null, shortName?: string | null
   if (parts.length >= 2) return { a: parts[0], b: parts[1] };
   if (raw) return { a: raw, b: 'TBD' };
   return { a: 'TBD', b: 'TBD' };
+};
+
+const matchTitleFromNames = (eventName?: string | null, shortName?: string | null) => {
+  const teams = splitTeamsFromName(eventName, shortName);
+  if (!teams.a || teams.a === 'TBD') return '';
+  if (!teams.b || teams.b === 'TBD') return teams.a;
+  return `${teams.a} vs ${teams.b}`;
+};
+
+const pickTeamNamesFromRow = (row: any): { a: string; b: string } | null => {
+  const teams =
+    (Array.isArray(row?.teams) ? row.teams : null) ||
+    (Array.isArray(row?.event?.teams) ? row.event.teams : null) ||
+    (Array.isArray(row?.event?.event_teams) ? row.event.event_teams : null) ||
+    (Array.isArray(row?.event_teams) ? row.event_teams : null);
+
+  if (Array.isArray(teams) && teams.length >= 2) {
+    const a = String(teams[0]?.name ?? teams[0]?.team_name ?? teams[0]?.teamName ?? '').trim();
+    const b = String(teams[1]?.name ?? teams[1]?.team_name ?? teams[1]?.teamName ?? '').trim();
+    if (a && b) return { a, b };
+  }
+
+  const a = String(row?.teamA?.name ?? row?.teamAName ?? row?.team_a_name ?? row?.team_a ?? '').trim();
+  const b = String(row?.teamB?.name ?? row?.teamBName ?? row?.team_b_name ?? row?.team_b ?? '').trim();
+  if (a && b) return { a, b };
+
+  return null;
 };
 
 const svgDataUriForTeam = (teamName: string) => {

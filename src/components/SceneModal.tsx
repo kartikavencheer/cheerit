@@ -21,6 +21,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
   const [isMuted, setIsMuted] = useState(true);
   const videosRef = useRef<(HTMLVideoElement | null)[]>([]);
   const [tileErrors, setTileErrors] = useState<Record<string, string>>({});
+  const endedUserTilesRef = useRef<Set<string>>(new Set());
 
   const panels = Math.max(1, scene.tiles.length || scene.totalPanels || 1);
   const cols = gridColsForPanels(panels);
@@ -37,6 +38,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
       setIsMuted(true);
       videosRef.current = [];
       setTileErrors({});
+      endedUserTilesRef.current = new Set();
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -49,9 +51,26 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
     const vids = videosRef.current.filter(Boolean) as HTMLVideoElement[];
     if (vids.length === 0) return;
 
+    const userTileIds = scene.tiles.filter((t) => t?.isUser && t?.videoUrl && !tileErrors[t.tileId]).map((t) => t.tileId);
+    endedUserTilesRef.current = new Set();
+
+    // Freeze everything first (important if a user previously tapped controls on non-user tiles).
+    for (const v of vids) v.pause();
+
+    const userVideoEls = scene.tiles
+      .map((t, idx) => ({ t, idx }))
+      .filter(({ t }) => t?.isUser && t?.videoUrl && !tileErrors[t.tileId])
+      .map(({ idx }) => videosRef.current[idx])
+      .filter(Boolean) as HTMLVideoElement[];
+
+    if (userVideoEls.length === 0) {
+      setIsPlaying(false);
+      return;
+    }
+
     // Important: keep this in the click gesture turn so browsers allow playback.
     await Promise.allSettled(
-      vids.map((v) => {
+      userVideoEls.map((v) => {
         v.muted = isMuted;
         try {
           v.currentTime = 0;
@@ -61,7 +80,13 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
         return v.play();
       })
     );
-    setIsPlaying(true);
+
+    // If everything ended instantly (e.g. empty/0s media), reflect correctly.
+    if (userTileIds.length === 0) {
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+    }
   };
 
   const pauseAll = () => {
@@ -109,7 +134,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                   Scene {scene.sceneName}
                 </div>
                 <div className="text-xs 2xl:text-sm text-gray-400 truncate">
-                  {scene.matchName || scene.eventId} • {panels} tiles • {scene.sceneId}
+                  {scene.eventName || scene.matchName || 'Event'} • {panels} tiles
                 </div>
               </div>
               <div className="flex items-center gap-2 2xl:gap-3 shrink-0">
@@ -169,6 +194,12 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                           if (el) el.muted = isMuted;
                         }}
                         src={tile.videoUrl}
+                        onEnded={() => {
+                          if (!tile?.isUser) return;
+                          endedUserTilesRef.current.add(tile.tileId);
+                          const totalUser = scene.tiles.filter((t) => t?.isUser && t?.videoUrl && !tileErrors[t.tileId]).length;
+                          if (totalUser > 0 && endedUserTilesRef.current.size >= totalUser) setIsPlaying(false);
+                        }}
                         onError={(e) => {
                           const el = e.currentTarget;
                           const msg = mediaErrorMessage(el);
@@ -179,13 +210,19 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                         muted={isMuted}
                         controls
                         poster={tile.thumbnailUrl}
-                        className="w-full h-full object-contain aspect-video bg-black"
+                        className={[
+                          'w-full h-full object-contain aspect-video bg-black transition-all duration-200',
+                          tile?.isUser ? 'opacity-100 blur-0' : 'opacity-35 blur-sm',
+                        ].join(' ')}
                       />
                     ) : tile?.thumbnailUrl ? (
                       <img
                         src={tile.thumbnailUrl}
                         alt="Tile"
-                        className="w-full h-full object-contain aspect-video bg-black/60"
+                        className={[
+                          'w-full h-full object-contain aspect-video bg-black/60 transition-all duration-200',
+                          tile?.isUser ? 'opacity-100 blur-0' : 'opacity-35 blur-sm',
+                        ].join(' ')}
                       />
                     ) : (
                       <div className="w-full aspect-video bg-white/5 flex items-center justify-center text-[11px] 2xl:text-xs text-gray-400">
@@ -209,11 +246,6 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                       </div>
                     ) : null}
 
-                    {tile?.submissionId && (
-                      <div className="absolute left-2 bottom-2 px-2 py-1 rounded-lg bg-black/60 border border-white/10 text-[10px] 2xl:text-xs text-gray-200 font-mono max-w-[90%] truncate">
-                        {tile.submissionId}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

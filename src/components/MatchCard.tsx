@@ -342,10 +342,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
       {/* Details (only hovered/clicked card) */}
       <div
         className={[
-          // Mobile: in-flow so it pushes the next card down. Desktop: overlay below card.
-          'relative mt-3 md:absolute md:left-0 md:right-0 md:top-full md:mt-3 md:z-40',
-          // Collapse when hidden (important for mobile in-flow layout)
-          'overflow-hidden md:overflow-visible max-h-0 md:max-h-none',
+          // In-flow so it pushes the next card down (all breakpoints).
+          'relative mt-3',
+          // Collapse when hidden.
+          'overflow-hidden max-h-0',
           'opacity-0 translate-y-1 pointer-events-none transition-all duration-200',
           'group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto group-hover:max-h-64',
           'group-data-[open=true]:opacity-100 group-data-[open=true]:translate-y-0 group-data-[open=true]:pointer-events-auto group-data-[open=true]:max-h-64',
