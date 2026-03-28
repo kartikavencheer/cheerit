@@ -205,19 +205,36 @@ export const Home: React.FC = () => {
                 </span>
               </h1>
 
-              <p className="text-lg text-gray-400 max-w-xl">
-                Just real fan energy.
-              </p>
+              <div className="max-w-xl space-y-3">
+                <p className="text-base sm:text-lg text-foreground leading-relaxed opacity-90">
+                  <span className="font-extrabold text-foreground opacity-100">CheerIT</span> is a secure,{' '}
+                  <span className="text-gradient font-bold">AI-verified</span>, near real-time event cheer
+                  infrastructure.
+                </p>
+
+                <div className="inline-flex items-center gap-2.5 rounded-full glass px-4 py-2 shadow-lg shadow-primary/10 ring-1 ring-primary/20">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center shadow-[0_0_20px_rgba(31,111,235,0.18)]">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-sm sm:text-base font-semibold">
+                    <span className="text-foreground opacity-90">Secure</span>{' '}
+                    <span className="text-muted px-1 opacity-70">•</span>
+                    <span className="text-gradient font-extrabold">AI-verified</span>
+                    <span className="text-muted px-1 opacity-70">•</span>{' '}
+                    <span className="text-foreground opacity-90">Near real-time</span>
+                  </div>
+                </div>
+              </div>
 
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">Powered by Avencheer</span>
                 {/* <img src="/images/image.png" className="h-8" /> */}
               </div>
 
-              <div className="flex items-center gap-2 text-primary text-sm bg-primary/10 px-3 py-1 rounded-full w-fit">
+              {/* <div className="flex items-center gap-2 text-primary text-sm bg-primary/10 px-3 py-1 rounded-full w-fit">
                 <ShieldCheck className="w-4 h-4" />
                 AI Moderation
-              </div>
+              </div> */}
 
               <div className="flex gap-3">
                 <div className="glass px-4 py-2 rounded-full text-sm flex gap-2 items-center">
