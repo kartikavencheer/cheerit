@@ -6,8 +6,7 @@ import {
   Video,
   getVideosPage,
 } from '../api/client';
-import { VideoModal } from '../components/VideoModal';
-import { Play, Calendar, Clock, Image as ImageIcon, Filter, Video as VideoIcon } from 'lucide-react';
+import { Play, Calendar, Clock, Image as ImageIcon, Filter, Video as VideoIcon, Download, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 
@@ -35,7 +34,7 @@ export const Library: React.FC = () => {
   const [page, setPage] = useState(1);
   const [mediaType, setMediaType] = useState<LibraryMediaTypeFilter>('VIDEO');
   const [status, setStatus] = useState<LibrarySubmissionStatusFilter>('APPROVED');
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   const { data: libraryPage, isLoading, isFetching } = useQuery({
     queryKey: ['user', 'library', user?.id, page, mediaType, status],
@@ -47,6 +46,25 @@ export const Library: React.FC = () => {
   const total = libraryPage?.total;
   const totalLabel = mediaType === 'IMAGE' ? 'Images' : 'Videos';
   const canNext = total != null ? page * pageSize < total : videos.length === pageSize;
+
+  const inferFileExtension = (url: string) => {
+    const cleanUrl = url.split('#')[0]?.split('?')[0] ?? '';
+    const lastDot = cleanUrl.lastIndexOf('.');
+    if (lastDot < 0) return null;
+    const ext = cleanUrl.slice(lastDot + 1).toLowerCase();
+    if (!ext || ext.length > 6) return null;
+    return ext;
+  };
+
+  const downloadNameFor = (item: Video) => {
+    const safeBase = (item.matchName || 'cheerit')
+      .trim()
+      .replace(/[^\w\- ]+/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 60);
+    const ext = inferFileExtension(item.videoUrl) ?? (mediaType === 'VIDEO' ? 'mp4' : 'jpg');
+    return `${safeBase || 'cheerit'}_${item.id}.${ext}`;
+  };
 
   return (
     <div className="page-container pt-28 pb-12">
@@ -92,6 +110,7 @@ export const Library: React.FC = () => {
                             onClick={() => {
                               setMediaType(t);
                               setPage(1);
+                              setActiveVideoId(null);
                             }}
                             className={[
                               'flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors',
@@ -124,6 +143,7 @@ export const Library: React.FC = () => {
                             onClick={() => {
                               setStatus(s);
                               setPage(1);
+                              setActiveVideoId(null);
                             }}
                             className={[
                               'px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors',
@@ -172,17 +192,71 @@ export const Library: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.06 }}
                   className={`group relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-300 shadow-lg ${statusClasses}`}
-                  onClick={() => setSelectedVideo(video)}
+                  onClick={() => {
+                    if (mediaType === 'VIDEO') {
+                      setActiveVideoId((current) => (current === video.id ? null : video.id));
+                      return;
+                    }
+
+                    window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   <div className="relative bg-black/5">
-                    <img
-                      src={video.thumbnailUrl || undefined}
-                      alt={video.matchName}
-                      className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
-                    />
+                    {mediaType === 'VIDEO' && activeVideoId === video.id ? (
+                      <video
+                        src={video.videoUrl}
+                        poster={video.thumbnailUrl || undefined}
+                        controls
+                        autoPlay
+                        playsInline
+                        preload="metadata"
+                        className="block w-full h-auto bg-black"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      <img
+                        src={
+                          (mediaType === 'IMAGE'
+                            ? video.thumbnailUrl || video.videoUrl
+                            : video.thumbnailUrl || video.videoUrl) || undefined
+                        }
+                        alt={video.matchName}
+                        className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <a
+                      href={video.videoUrl}
+                      download={downloadNameFor(video)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/60 hover:bg-black/75 border border-white/10 text-white/90 hover:text-white backdrop-blur-md transition-colors"
+                      title="Download"
+                      aria-label="Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+
+                    {mediaType === 'VIDEO' && activeVideoId === video.id ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveVideoId(null);
+                        }}
+                        className="absolute top-3 left-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/60 hover:bg-black/75 border border-white/10 text-white/90 hover:text-white backdrop-blur-md transition-colors"
+                        title="Close"
+                        aria-label="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    ) : null}
+
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                       <div className="w-16 h-16 2xl:w-20 2xl:h-20 rounded-full bg-primary/90 flex items-center justify-center text-white shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
                         {mediaType === 'IMAGE' ? (
                           <ImageIcon className="w-8 h-8 2xl:w-10 2xl:h-10" />
@@ -215,7 +289,10 @@ export const Library: React.FC = () => {
             <button
               type="button"
               disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => {
+                setActiveVideoId(null);
+                setPage((p) => Math.max(1, p - 1));
+              }}
               className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-border text-foreground font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Prev
@@ -224,7 +301,10 @@ export const Library: React.FC = () => {
             <button
               type="button"
               disabled={!canNext}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => {
+                setActiveVideoId(null);
+                setPage((p) => p + 1);
+              }}
               className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-primary/20"
             >
               Next
@@ -245,17 +325,6 @@ export const Library: React.FC = () => {
             Try a different status filter or switch between IMAGE and VIDEO.
           </p>
         </div>
-      )}
-
-      {selectedVideo && (
-        <VideoModal
-          isOpen={!!selectedVideo}
-          onClose={() => setSelectedVideo(null)}
-          mediaType={mediaType === 'IMAGE' ? 'image' : 'video'}
-          videoUrl={selectedVideo.videoUrl}
-          imageUrl={selectedVideo.videoUrl || selectedVideo.thumbnailUrl}
-          title={selectedVideo.matchName}
-        />
       )}
     </div>
   );
