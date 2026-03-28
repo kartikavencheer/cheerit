@@ -861,6 +861,15 @@ export const getVideos = async (
   return items;
 };
 
+export const softDeleteSubmission = async (submissionId: string, deletedBy: string) => {
+  const body = {
+    submission_id: submissionId,
+    deleted_by: deletedBy,
+  };
+  const { data } = await apiClient.patch<any>('/submissions/soft-delete', body);
+  return data;
+};
+
 export const getUserLibrary = async () => {
   const { data } = await apiClient.get<any>('/user/library');
   const items = extractArray(data) as ApiLibraryItem[];

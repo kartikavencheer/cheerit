@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   LibraryMediaTypeFilter,
   LibrarySubmissionStatusFilter,
   Video,
   getVideosPage,
+  softDeleteSubmission,
 } from '../api/client';
-import { Play, Calendar, Clock, Image as ImageIcon, Filter, Video as VideoIcon, Download, X } from 'lucide-react';
+import { Play, Calendar, Clock, Image as ImageIcon, Filter, Video as VideoIcon, Download, X, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 const MEDIA_TYPES: LibraryMediaTypeFilter[] = ['VIDEO', 'IMAGE'];
 const STATUSES: LibrarySubmissionStatusFilter[] = ['APPROVED', 'REJECTED', 'PLAYED'];
@@ -30,16 +32,48 @@ const statusLabel = (status: LibrarySubmissionStatusFilter) => {
 
 export const Library: React.FC = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const pageSize = 12;
   const [page, setPage] = useState(1);
   const [mediaType, setMediaType] = useState<LibraryMediaTypeFilter>('VIDEO');
   const [status, setStatus] = useState<LibrarySubmissionStatusFilter>('APPROVED');
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
+  const queryKey = ['user', 'library', user?.id, page, mediaType, status] as const;
+
   const { data: libraryPage, isLoading, isFetching } = useQuery({
-    queryKey: ['user', 'library', user?.id, page, mediaType, status],
+    queryKey,
     enabled: !!user?.id,
     queryFn: () => getVideosPage(user!.id, page, pageSize, { mediaType, status }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (submissionId: string) => {
+      const deletedBy = user?.name || user?.phone || 'user';
+      return softDeleteSubmission(submissionId, deletedBy);
+    },
+    onMutate: async (submissionId) => {
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<{ items: Video[]; total?: number }>(queryKey);
+      queryClient.setQueryData<{ items: Video[]; total?: number }>(queryKey, (old) => {
+        if (!old) return old;
+        const nextItems = old.items.filter((v) => v.id !== submissionId);
+        const nextTotal = typeof old.total === 'number' ? Math.max(0, old.total - 1) : old.total;
+        return { ...old, items: nextItems, total: nextTotal };
+      });
+      if (activeVideoId === submissionId) setActiveVideoId(null);
+      return { prev };
+    },
+    onError: (_err, _submissionId, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+      toast.error('Failed to delete. Please try again.');
+    },
+    onSuccess: () => {
+      toast.success('Deleted from your library.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'library', user?.id] });
+    },
   });
 
   const videos = libraryPage?.items ?? [];
@@ -228,18 +262,37 @@ export const Library: React.FC = () => {
                     )}
                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                    <a
-                      href={video.videoUrl}
-                      download={downloadNameFor(video)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/60 hover:bg-black/75 border border-white/10 text-white/90 hover:text-white backdrop-blur-md transition-colors"
-                      title="Download"
-                      aria-label="Download"
-                    >
-                      <Download className="w-4 h-4" />
-                    </a>
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!video.id) return;
+                          const ok = window.confirm('Delete this item from your library?');
+                          if (!ok) return;
+                          deleteMutation.mutate(video.id);
+                        }}
+                        disabled={deleteMutation.isPending}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/60 hover:bg-black/75 border border-white/10 text-white/90 hover:text-white backdrop-blur-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        title="Delete"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+
+                      <a
+                        href={video.videoUrl}
+                        download={downloadNameFor(video)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/60 hover:bg-black/75 border border-white/10 text-white/90 hover:text-white backdrop-blur-md transition-colors"
+                        title="Download"
+                        aria-label="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
 
                     {mediaType === 'VIDEO' && activeVideoId === video.id ? (
                       <button
