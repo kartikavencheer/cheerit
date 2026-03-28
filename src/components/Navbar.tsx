@@ -66,7 +66,7 @@ export const Navbar: React.FC = () => {
                 <img
                   src="/images/cheeritlogo.png"
                   alt="CheerIT Logo"
-                  className="h-9 sm:h-10 w-auto"
+                  className="h-9 sm:h-11 w-auto"
                 />
               </Link>
             </div>
