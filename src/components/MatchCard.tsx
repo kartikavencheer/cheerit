@@ -62,7 +62,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
     <motion.div
       whileHover={{ y: -10, scale: 1.015 }}
       transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-      className="relative overflow-hidden rounded-3xl group cursor-pointer"
+      className="relative group cursor-pointer"
       data-open={detailsOpen ? 'true' : 'false'}
       role="button"
       tabIndex={0}
@@ -73,12 +73,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
           setDetailsOpen((v) => !v);
         }
       }}
-      style={{
-        background: t.cardBg,
-        border: t.cardBorder,
-        boxShadow: t.cardShadow,
-      }}
     >
+      <div
+        className="relative overflow-hidden rounded-3xl"
+        style={{
+          background: t.cardBg,
+          border: t.cardBorder,
+          boxShadow: t.cardShadow,
+        }}
+      >
       {/* Ambient glow on hover */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
@@ -329,20 +332,29 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
         </span>
       </div>
 
-      {/* Details (below card) */}
+      {/* Bottom accent line */}
+      <div
+        className="h-[2px] w-full opacity-0 group-hover:opacity-100 transition-all duration-500"
+        style={{ background: 'linear-gradient(90deg, transparent, #1f6feb, transparent)' }}
+      />
+      </div>
+
+      {/* Details (only hovered/clicked card) */}
       <div
         className={[
-          'overflow-hidden px-4 sm:px-6',
-          'transition-[max-height,opacity] duration-300 ease-out',
-          'max-h-0 opacity-0',
-          'group-hover:max-h-40 group-hover:opacity-100',
-          'data-[open=true]:max-h-40 data-[open=true]:opacity-100',
+          // Mobile: in-flow so it pushes the next card down. Desktop: overlay below card.
+          'relative mt-3 md:absolute md:left-0 md:right-0 md:top-full md:mt-3 md:z-40',
+          // Collapse when hidden (important for mobile in-flow layout)
+          'overflow-hidden md:overflow-visible max-h-0 md:max-h-none',
+          'opacity-0 translate-y-1 pointer-events-none transition-all duration-200',
+          'group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto group-hover:max-h-64',
+          'group-data-[open=true]:opacity-100 group-data-[open=true]:translate-y-0 group-data-[open=true]:pointer-events-auto group-data-[open=true]:max-h-64',
         ].join(' ')}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="mt-3 mb-4 rounded-2xl border p-4"
-          style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.06)' }}
+          className="rounded-2xl border p-4 shadow-xl bg-white/95 backdrop-blur-md"
+          style={{ border: '1px solid rgba(0,0,0,0.08)' }}
         >
           <div className="text-sm font-bold text-gray-900 truncate">
             {match.eventName || `${match.teamA.name} vs ${match.teamB.name}`}
@@ -363,12 +375,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
           </div>
         </div>
       </div>
-
-      {/* Bottom accent line */}
-      <div
-        className="h-[2px] w-full opacity-0 group-hover:opacity-100 transition-all duration-500"
-        style={{ background: 'linear-gradient(90deg, transparent, #1f6feb, transparent)' }}
-      />
     </motion.div>
   );
 };
