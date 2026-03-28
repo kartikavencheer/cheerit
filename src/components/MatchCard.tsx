@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Match } from '../api/client';
 import { motion } from 'motion/react';
-import { Calendar, Clock, Trophy, Flame, Zap } from 'lucide-react';
+import { Calendar, Clock, Trophy, Flame, Zap, MapPin } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
@@ -12,6 +12,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
   const isLive = match.status === 'live';
   const matchDate = new Date(match.startTime);
   const isDark = theme === 'dark';
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // ─── Theme tokens ───────────────────────────────────────────────────────────
  const t = {
@@ -62,6 +63,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
       whileHover={{ y: -10, scale: 1.015 }}
       transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
       className="relative overflow-hidden rounded-3xl group cursor-pointer"
+      data-open={detailsOpen ? 'true' : 'false'}
+      role="button"
+      tabIndex={0}
+      onClick={() => setDetailsOpen((v) => !v)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setDetailsOpen((v) => !v);
+        }
+      }}
       style={{
         background: t.cardBg,
         border: t.cardBorder,
@@ -316,6 +327,41 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
             ? 'Match In Progress'
             : `Starts ${matchDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
         </span>
+      </div>
+
+      {/* Details (below card) */}
+      <div
+        className={[
+          'overflow-hidden px-4 sm:px-6',
+          'transition-[max-height,opacity] duration-300 ease-out',
+          'max-h-0 opacity-0',
+          'group-hover:max-h-40 group-hover:opacity-100',
+          'data-[open=true]:max-h-40 data-[open=true]:opacity-100',
+        ].join(' ')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="mt-3 mb-4 rounded-2xl border p-4"
+          style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.06)' }}
+        >
+          <div className="text-sm font-bold text-gray-900 truncate">
+            {match.eventName || `${match.teamA.name} vs ${match.teamB.name}`}
+          </div>
+          <div className="mt-2 grid gap-1.5 text-xs text-gray-700">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-gray-500" />
+              <span>{matchDate.toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-gray-500" />
+              <span>{matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5 text-gray-500" />
+              <span className="truncate">{match.venueName || 'Venue TBA'}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Bottom accent line */}

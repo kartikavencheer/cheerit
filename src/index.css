@@ -114,6 +114,48 @@
       max-width: 110rem;
     }
   }
+
+  .library-marquee {
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .library-marquee::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(10, 10, 10, 0) 0%, rgba(10, 10, 10, 0) 70%, rgba(10, 10, 10, 1) 100%);
+  }
+
+  .library-marquee__inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 2.5rem;
+    padding-right: 2.5rem;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .library-card:hover .library-marquee__inner {
+    animation: library-marquee 9s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .library-card:hover .library-marquee__inner {
+      animation: none;
+    }
+  }
+
+  @keyframes library-marquee {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    100% {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
 }
 
 @utility glass {

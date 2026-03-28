@@ -25,6 +25,8 @@ export interface Match {
   status: 'live' | 'upcoming' | 'completed';
   score?: string;
   startTime: string;
+  eventName?: string;
+  venueName?: string;
 }
 
 export type EventType = {
@@ -823,6 +825,8 @@ const toMatch = (event: ApiEvent): Match => {
     teamB: { name: teamB?.name ?? teams.b, logo: teamB?.logo_url || svgDataUriForTeam(teams.b) },
     status: mappedStatus,
     startTime,
+    eventName: event.event_name ?? undefined,
+    venueName: event.venue_name ?? undefined,
   };
 };
 

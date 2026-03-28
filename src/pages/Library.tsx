@@ -191,7 +191,7 @@ export const Library: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.06 }}
-                  className={`group relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-300 shadow-lg ${statusClasses}`}
+                  className={`library-card group relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-300 shadow-lg ${statusClasses}`}
                   onClick={() => {
                     if (mediaType === 'VIDEO') {
                       setActiveVideoId((current) => (current === video.id ? null : video.id));
@@ -268,7 +268,17 @@ export const Library: React.FC = () => {
                   </div>
 
                   <div className="p-4 bg-[#0a0a0a] border-t border-white/10">
-                    <h3 className="text-lg 2xl:text-xl font-bold text-white truncate">{video.matchName}</h3>
+                    <div className="library-marquee">
+                      <div className="library-marquee__inner">
+                        <h3 className="text-lg 2xl:text-xl font-bold text-white whitespace-nowrap">{video.matchName}</h3>
+                        <h3
+                          aria-hidden="true"
+                          className="text-lg 2xl:text-xl font-bold text-white whitespace-nowrap select-none"
+                        >
+                          {video.matchName}
+                        </h3>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-4 mt-2 text-xs 2xl:text-sm text-gray-400 font-medium">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3 2xl:w-3.5 2xl:h-3.5" />
