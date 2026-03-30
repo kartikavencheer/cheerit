@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { apiClient, UserProfile } from '../api/client';
+import { apiClient, fetchUserDetails, normalizeUserProfile, UserProfile } from '../api/client';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (phone: string, otp: string) => Promise<void>;
   sendOtp: (phone: string) => Promise<void>;
+  refreshUserDetails: () => Promise<UserProfile | null>;
   logout: () => void;
 }
 
@@ -19,6 +20,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('cheerit_token'));
   const [isLoading, setIsLoading] = useState(true);
   const didBootRef = useRef(false);
+
+  const mergeUserProfiles = (current: UserProfile | null, incoming: UserProfile): UserProfile => {
+    return {
+      id: incoming.id || current?.id || '',
+      name: incoming.name || current?.name || 'User',
+      phone: incoming.phone || current?.phone || '',
+      email: incoming.email || current?.email || undefined,
+      avatar: incoming.avatar || current?.avatar || undefined,
+      createdAt: incoming.createdAt || current?.createdAt || undefined,
+      verified: incoming.verified ?? current?.verified ?? undefined,
+      countryCode: incoming.countryCode || current?.countryCode || undefined,
+      gender: incoming.gender || current?.gender || undefined,
+      emailVerified: incoming.emailVerified ?? current?.emailVerified ?? undefined,
+      isActive: incoming.isActive ?? current?.isActive ?? undefined,
+      isBlocked: incoming.isBlocked ?? current?.isBlocked ?? undefined,
+      allowNotifications: incoming.allowNotifications ?? current?.allowNotifications ?? undefined,
+      postalCode: incoming.postalCode !== undefined ? incoming.postalCode : current?.postalCode,
+      cityName: incoming.cityName !== undefined ? incoming.cityName : current?.cityName,
+      stateName: incoming.stateName !== undefined ? incoming.stateName : current?.stateName,
+      country: incoming.country !== undefined ? incoming.country : current?.country,
+      updatedAt: incoming.updatedAt || current?.updatedAt || undefined,
+    };
+  };
+
+  const persistUser = (profile: UserProfile) => {
+    localStorage.setItem('cheerit_user', JSON.stringify(profile));
+  };
 
   const clearSession = (opts?: { toastMessage?: string }) => {
     localStorage.removeItem('cheerit_token');
@@ -59,6 +87,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (isMounted) setIsLoading(false);
+
+      // Refresh profile details in the background (email, avatar, verification, etc.)
+      try {
+        const seed = savedUser ? (JSON.parse(savedUser) as UserProfile) : null;
+        const fetched = await fetchUserDetails(seed?.id);
+        if (!isMounted) return;
+        const merged = mergeUserProfiles(seed, fetched);
+        setUser(merged);
+        persistUser(merged);
+      } catch (error) {
+        // Silent: profile page can still work with cached/login data
+        console.warn('Failed to refresh user details:', error);
+      }
     };
     checkAuth();
 
@@ -91,16 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
     if (digits.length > 10) return digits.slice(-10);
     return digits;
-  };
-
-  const toUserProfile = (apiUser: any): UserProfile => {
-    return {
-      id: String(apiUser?.id ?? apiUser?.user_id ?? ''),
-      name: String(apiUser?.full_name ?? apiUser?.name ?? 'User'),
-      phone: String(apiUser?.mobile_number ?? apiUser?.phone ?? ''),
-      avatar: apiUser?.avatar ?? undefined,
-      createdAt: apiUser?.created_at ?? apiUser?.createdAt ?? apiUser?.created_on ?? undefined,
-    };
   };
 
   const sendOtp = async (phone: string) => {
@@ -143,9 +174,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(token);
       if (data.refreshToken) localStorage.setItem('cheerit_refresh_token', data.refreshToken);
 
-      const nextUser = toUserProfile(data.user);
+      const nextUser = normalizeUserProfile(data.user);
       setUser(nextUser);
-      localStorage.setItem('cheerit_user', JSON.stringify(nextUser));
+      persistUser(nextUser);
+
+      // Fetch full profile from API/DB after login (email, gender, profile pic, etc.)
+      try {
+        const fetched = await fetchUserDetails(nextUser.id);
+        const merged = mergeUserProfiles(nextUser, fetched);
+        setUser(merged);
+        persistUser(merged);
+      } catch (error) {
+        console.warn('Failed to fetch full user profile after login:', error);
+      }
       toast.success(data.message || 'Login successful!');
     } catch (error) {
       console.error('Login failed:', error);
@@ -159,8 +200,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearSession({ toastMessage: 'Logged out successfully.' });
   };
 
+  const refreshUserDetails = async () => {
+    if (!token) return null;
+    try {
+      const fetched = await fetchUserDetails(user?.id);
+      const merged = mergeUserProfiles(user, fetched);
+      setUser(merged);
+      persistUser(merged);
+      return merged;
+    } catch (error) {
+      console.warn('Failed to refresh user details:', error);
+      return null;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user && !!token, isLoading, login, sendOtp, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user && !!token, isLoading, login, sendOtp, refreshUserDetails, logout }}>
       {children}
     </AuthContext.Provider>
   );

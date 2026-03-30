@@ -26,6 +26,7 @@ export interface Match {
   score?: string;
   startTime: string;
   eventName?: string;
+  eventShortName?: string;
   venueName?: string;
 }
 
@@ -81,9 +82,174 @@ export interface UserProfile {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   avatar?: string;
   createdAt?: string;
+  verified?: boolean;
+  countryCode?: string;
+  gender?: string;
+  emailVerified?: boolean;
+  isActive?: boolean;
+  isBlocked?: boolean;
+  allowNotifications?: boolean;
+  postalCode?: string | null;
+  cityName?: string | null;
+  stateName?: string | null;
+  country?: string | null;
+  updatedAt?: string;
 }
+
+export const normalizeUserProfile = (apiUser: any): UserProfile => {
+  const id = String(apiUser?.id ?? apiUser?.user_id ?? apiUser?.userId ?? apiUser?.uuid ?? apiUser?.user_uuid ?? '').trim();
+  const name = String(apiUser?.full_name ?? apiUser?.fullName ?? apiUser?.name ?? apiUser?.username ?? 'User').trim() || 'User';
+  const phone = String(apiUser?.mobile_number ?? apiUser?.mobileNumber ?? apiUser?.phone ?? apiUser?.phone_number ?? '').trim();
+  const emailRaw =
+    apiUser?.email ??
+    apiUser?.email_address ??
+    apiUser?.emailAddress ??
+    apiUser?.email_id ??
+    apiUser?.emailId ??
+    apiUser?.mail ??
+    apiUser?.user_email;
+  const email = typeof emailRaw === 'string' ? emailRaw.trim() : undefined;
+  const genderRaw = apiUser?.gender ?? apiUser?.sex ?? apiUser?.gender_name ?? apiUser?.genderName ?? undefined;
+  const gender = typeof genderRaw === 'string' ? genderRaw.trim() : undefined;
+
+  const createdAt =
+    String(apiUser?.created_at ?? apiUser?.createdAt ?? apiUser?.created_on ?? apiUser?.createdOn ?? '').trim() || undefined;
+  const updatedAt =
+    String(apiUser?.updated_at ?? apiUser?.updatedAt ?? apiUser?.updated_on ?? apiUser?.updatedOn ?? '').trim() || undefined;
+
+  const emailVerifiedRaw =
+    apiUser?.isEmailVerified ?? apiUser?.email_verified ?? apiUser?.emailVerified ?? apiUser?.is_email_verified ?? undefined;
+  const emailVerified = typeof emailVerifiedRaw === 'boolean' ? emailVerifiedRaw : undefined;
+
+  const verifiedRaw =
+    apiUser?.is_verified ?? apiUser?.isVerified ?? apiUser?.verified ?? apiUser?.is_active ?? apiUser?.isActive ?? undefined;
+  const verified = typeof emailVerified === 'boolean' ? emailVerified : typeof verifiedRaw === 'boolean' ? verifiedRaw : undefined;
+  const countryCodeRaw = apiUser?.country_code ?? apiUser?.countryCode ?? apiUser?.dial_code ?? apiUser?.dialCode ?? undefined;
+  const countryCode = typeof countryCodeRaw === 'string' ? countryCodeRaw.trim() : undefined;
+
+  const makeAbsoluteUrl = (maybeUrl?: string) => {
+    const url = (maybeUrl ?? '').trim();
+    if (!url) return undefined;
+    if (/^https?:\/\//i.test(url)) return url;
+    try {
+      const base = new URL(API_URL);
+      base.pathname = base.pathname.replace(/\/api\/?$/, '/');
+      return new URL(url, base.toString()).toString();
+    } catch {
+      return url;
+    }
+  };
+
+  const avatarRaw =
+    pluckUrlString(
+      apiUser?.profile_image ??
+        apiUser?.profileImage ??
+        apiUser?.profile_image_url ??
+        apiUser?.profileImageUrl ??
+        apiUser?.profile_pic ??
+        apiUser?.profilePic ??
+        apiUser?.avatar ??
+        apiUser?.image_url ??
+        apiUser?.imageUrl,
+      'image'
+    ) ?? undefined;
+  const avatar = makeAbsoluteUrl(avatarRaw);
+
+  const isActiveRaw = apiUser?.is_active ?? apiUser?.isActive ?? undefined;
+  const isActive = typeof isActiveRaw === 'boolean' ? isActiveRaw : undefined;
+  const isBlockedRaw = apiUser?.is_blocked ?? apiUser?.isBlocked ?? undefined;
+  const isBlocked = typeof isBlockedRaw === 'boolean' ? isBlockedRaw : undefined;
+  const allowNotificationsRaw = apiUser?.allow_notifications ?? apiUser?.allowNotifications ?? undefined;
+  const allowNotifications = typeof allowNotificationsRaw === 'boolean' ? allowNotificationsRaw : undefined;
+  const postalCodeRaw = apiUser?.postal_code ?? apiUser?.postalCode ?? null;
+  const postalCode = postalCodeRaw === null || typeof postalCodeRaw === 'undefined' ? postalCodeRaw : String(postalCodeRaw).trim();
+  const cityNameRaw = apiUser?.city_name ?? apiUser?.cityName ?? null;
+  const cityName = cityNameRaw === null || typeof cityNameRaw === 'undefined' ? cityNameRaw : String(cityNameRaw).trim();
+  const stateNameRaw = apiUser?.state_name ?? apiUser?.stateName ?? null;
+  const stateName = stateNameRaw === null || typeof stateNameRaw === 'undefined' ? stateNameRaw : String(stateNameRaw).trim();
+  const countryRaw = apiUser?.country ?? apiUser?.country_name ?? apiUser?.countryName ?? null;
+  const country = countryRaw === null || typeof countryRaw === 'undefined' ? countryRaw : String(countryRaw).trim();
+
+  return {
+    id,
+    name,
+    phone,
+    email: email || undefined,
+    avatar,
+    createdAt,
+    verified,
+    countryCode,
+    gender,
+    emailVerified,
+    isActive,
+    isBlocked,
+    allowNotifications,
+    postalCode,
+    cityName,
+    stateName,
+    country,
+    updatedAt,
+  };
+};
+
+const extractUserObject = (payload: any): any | undefined => {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const candidates = [
+    (payload as any).user,
+    (payload as any).data?.user,
+    (payload as any).data?.data?.user,
+    (payload as any).value?.user,
+    (payload as any).profile,
+    (payload as any).data?.profile,
+    (payload as any).data,
+    (payload as any).data?.data,
+    (payload as any).value,
+    (payload as any).value?.data,
+  ];
+
+  for (const c of candidates) {
+    if (c && typeof c === 'object' && !Array.isArray(c)) return c;
+  }
+  return undefined;
+};
+
+export const fetchUserDetails = async (userId?: string): Promise<UserProfile> => {
+  const id = String(userId ?? '').trim();
+  const endpoints = [
+    ...(id ? [`/users/${encodeURIComponent(id)}`, `/user/${encodeURIComponent(id)}`] : []),
+    '/users/me',
+    '/user/me',
+    '/users/profile',
+    '/user/profile',
+    '/users',
+    '/profile',
+    '/auth/me',
+    '/auth/profile',
+  ];
+
+  let lastError: unknown;
+  for (const path of endpoints) {
+    try {
+      const { data } = await apiClient.get<any>(path);
+      const apiUser = extractUserObject(data) ?? data;
+      const normalized = normalizeUserProfile(apiUser);
+      if (normalized.id || normalized.phone || normalized.email || normalized.name) return normalized;
+    } catch (err) {
+      lastError = err;
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        // try next endpoint for "not found" / "method not allowed"
+        if (status === 404 || status === 405) continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError ?? new Error('Failed to fetch user details');
+};
 
 export interface Video {
   id: string;
@@ -1037,6 +1203,7 @@ const toMatch = (event: ApiEvent): Match => {
     status: mappedStatus,
     startTime,
     eventName: event.event_name ?? undefined,
+    eventShortName: event.event_short_name ?? undefined,
     venueName: event.venue_name ?? undefined,
   };
 };

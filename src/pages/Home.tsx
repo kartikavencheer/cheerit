@@ -16,6 +16,8 @@ import { Link } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  type MatchesTab = 'live' | 'upcoming' | 'completed';
+  const [matchesTab, setMatchesTab] = useState<MatchesTab>('live');
 
   const { data: liveMatches, isLoading: isLoadingLive } = useQuery({
     queryKey: ['events', 'live'],
@@ -104,9 +106,13 @@ export const Home: React.FC = () => {
   const featuredIsLive = featuredMatch?.status === 'live';
 
   const scrollToSection = (id: string) => {
+    const tab: MatchesTab | null =
+      id === 'live-matches' ? 'live' : id === 'upcoming-matches' ? 'upcoming' : id === 'completed-matches' ? 'completed' : null;
+    if (tab) setMatchesTab(tab);
+
     const element = document.getElementById(id);
     if (!element) return;
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => element.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
 
   const EventTypeChips = ({
@@ -150,18 +156,20 @@ export const Home: React.FC = () => {
     );
   };
 
+  const sectionClass = (tab: MatchesTab) => (matchesTab === tab ? 'block' : 'hidden');
+
   return (
     <div className="min-h-screen pb-20">
 
       {/* HERO SECTION (OPTIMIZED) */}
-      <section className="relative pt-20 pb-16 overflow-hidden min-h-[70vh] flex items-center">
+      <section className="relative pt-20 pb-16 overflow-hidden min-h-[30vh] flex items-center">
 
         {/* Background */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/20 to-background/30 z-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/80 z-10" />
           <img 
-            src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2000&auto=format&fit=crop" 
+            src="images/webstie stadium.png" 
             className="w-full h-full object-cover opacity-80"
           />
         </div>
@@ -262,7 +270,7 @@ export const Home: React.FC = () => {
 
             </motion.div>
 
-            {/* RIGHT LOGIN */}
+            {/* RIGHT LOGIN
             <motion.div className="lg:col-span-5">
 
               {!isAuthenticated ? (
@@ -285,15 +293,47 @@ export const Home: React.FC = () => {
                 </div>
               )}
 
-            </motion.div>
+            </motion.div> */}
 
           </div>
         </div>
       </section>
 
+      {/* MATCH TABS */}
+      <div className="page-container pt-6">
+        <div className="sticky top-16 z-30 bg-background/80 backdrop-blur-md rounded-2xl border border-border p-2 shadow-lg">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:justify-center sm:gap-3">
+            {(
+              [
+                { id: 'live' as const, label: 'Live' },
+                { id: 'upcoming' as const, label: 'Upcoming' },
+                { id: 'completed' as const, label: 'Completed' },
+              ] satisfies { id: MatchesTab; label: string }[]
+            ).map((t) => {
+              const active = matchesTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setMatchesTab(t.id)}
+                  className={[
+                    'px-3 py-2 rounded-xl text-sm font-semibold transition-colors border sm:px-6',
+                    active
+                      ? 'bg-primary/15 text-foreground border-primary/30'
+                      : 'bg-transparent text-muted border-transparent hover:bg-white/5 hover:text-foreground',
+                  ].join(' ')}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* LIVE MATCHES */}
-      <section id="live-matches" className="page-container py-20">
-        <div className="flex items-center justify-between gap-4 mb-6">
+      <section id="live-matches" className={['page-container py-6 sm:py-10', sectionClass('live')].join(' ')}>
+        <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="text-2xl sm:text-3xl font-bold">Live Matches</h2>
           <CheerBurst />
         </div>
@@ -312,13 +352,13 @@ export const Home: React.FC = () => {
       </section>
 
       {/* UPCOMING */}
-      <section id="upcoming-matches" className="page-container py-10">
-        <h2 className="text-3xl font-bold mb-6">Upcoming Matches</h2>
+      <section id="upcoming-matches" className={['page-container py-6 sm:py-10', sectionClass('upcoming')].join(' ')}>
+        <h2 className="text-3xl font-bold mb-4">Upcoming Matches</h2>
 
         {isLoadingUpcoming ? (
           <div>Loading...</div>
         ) : allUpcomingTypes.length ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <EventTypeChips
               types={allUpcomingTypes}
               selectedId={selectedUpcomingTypeId}
@@ -342,13 +382,13 @@ export const Home: React.FC = () => {
       </section>
 
       {/* COMPLETED */}
-      <section id="completed-matches" className="page-container py-10">
-        <h2 className="text-3xl font-bold mb-6">Completed Matches</h2>
+      <section id="completed-matches" className={['page-container py-6 sm:py-10', sectionClass('completed')].join(' ')}>
+        <h2 className="text-3xl font-bold mb-4">Completed Matches</h2>
 
         {isLoadingCompleted ? (
           <div>Loading...</div>
         ) : allCompletedTypes.length ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <EventTypeChips
               types={allCompletedTypes}
               selectedId={selectedCompletedTypeId}

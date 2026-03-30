@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, Phone, Shield } from 'lucide-react';
+import { LogOut, Mail, Phone, Shield, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { getPlayedScenesPage, getVideosPage } from '../api/client';
 
 export const Profile: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, refreshUserDetails } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const didAttemptFetchRef = useRef(false);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (isLoading) return;
+    if (user) return;
+    if (didAttemptFetchRef.current) return;
+    didAttemptFetchRef.current = true;
+
+    setIsRefreshing(true);
+    refreshUserDetails().finally(() => setIsRefreshing(false));
+  }, [isLoading, user, refreshUserDetails]);
 
   const parseMemberSince = (input?: string) => {
     if (!input) return undefined;
@@ -19,24 +30,87 @@ export const Profile: React.FC = () => {
     return Number.isFinite(d.getTime()) ? d : undefined;
   };
 
+  const userId = user?.id;
+
   const { data: videosMeta, isLoading: isLoadingVideos, isError: isVideosError } = useQuery({
-    queryKey: ['profile', 'stats', 'videos', user.id],
-    queryFn: () => getVideosPage(user.id, 1, 1),
+    queryKey: ['profile', 'stats', 'videos', userId],
+    queryFn: () => getVideosPage(userId as string, 1, 1),
+    enabled: !!userId,
   });
 
   const { data: scenesMeta, isLoading: isLoadingScenes, isError: isScenesError } = useQuery({
-    queryKey: ['profile', 'stats', 'scenes', user.id],
+    queryKey: ['profile', 'stats', 'scenes', userId],
     queryFn: () => getPlayedScenesPage(1, 1),
     retry: false,
     staleTime: 60_000,
+    enabled: !!userId,
   });
 
-  const memberSince = parseMemberSince(user.createdAt);
+  const memberSince = parseMemberSince(user?.createdAt);
   const videosCount = videosMeta?.total ?? videosMeta?.items.length ?? 0;
   const scenesCount = scenesMeta?.total ?? scenesMeta?.items.length ?? 0;
 
+  if (!user) {
+    return (
+      <div className="page-container pt-28 pb-12 max-w-3xl">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 sm:p-8">
+          <h1 className="text-2xl 2xl:text-3xl font-display font-bold text-foreground">Profile</h1>
+          <p className="text-gray-400 mt-2">
+            {isLoading || isRefreshing ? 'Fetching your profile...' : 'You are not logged in (or profile could not be loaded).'}
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRefreshing(true);
+                refreshUserDetails().finally(() => setIsRefreshing(false));
+              }}
+              className="px-4 py-2 rounded-xl bg-primary text-white font-semibold disabled:opacity-60"
+              disabled={isLoading || isRefreshing}
+            >
+              {isRefreshing ? 'Refreshing...' : 'Refresh Profile'}
+            </button>
+            <Link
+              to="/login"
+              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-border text-foreground font-medium text-center"
+            >
+              Go to Login
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container pt-28 pb-12 max-w-3xl">
+      {!user ? (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 sm:p-8">
+          <h1 className="text-2xl 2xl:text-3xl font-display font-bold text-foreground">Profile</h1>
+          <p className="text-gray-400 mt-2">
+            {isLoading || isRefreshing ? 'Fetching your profile…' : 'You are not logged in (or profile could not be loaded).'}
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRefreshing(true);
+                refreshUserDetails().finally(() => setIsRefreshing(false));
+              }}
+              className="px-4 py-2 rounded-xl bg-primary text-white font-semibold disabled:opacity-60"
+              disabled={isLoading || isRefreshing}
+            >
+              {isRefreshing ? 'Refreshing…' : 'Refresh Profile'}
+            </button>
+            <Link
+              to="/login"
+              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-border text-foreground font-medium text-center"
+            >
+              Go to Login
+            </Link>
+          </div>
+        </motion.div>
+      ) : null}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -62,9 +136,21 @@ export const Profile: React.FC = () => {
                 <Phone className="w-4 h-4 2xl:w-5 2xl:h-5" />
                 <span>{user.phone}</span>
               </div>
+              {user.email ? (
+                <div className="flex items-center gap-2 text-gray-400 mt-2">
+                  <Mail className="w-4 h-4 2xl:w-5 2xl:h-5" />
+                  <span>{user.email}</span>
+                </div>
+              ) : null}
+              {user.gender ? (
+                <div className="flex items-center gap-2 text-gray-400 mt-2">
+                  <User className="w-4 h-4 2xl:w-5 2xl:h-5" />
+                  <span>{user.gender}</span>
+                </div>
+              ) : null}
               <div className="flex items-center gap-2 text-green-400 mt-2 text-sm 2xl:text-base font-medium">
                 <Shield className="w-4 h-4 2xl:w-5 2xl:h-5" />
-                <span>Verified Account</span>
+                <span>{(user.emailVerified ?? user.verified) === false ? 'Unverified Account' : 'Verified Account'}</span>
               </div>
             </div>
             

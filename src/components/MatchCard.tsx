@@ -14,6 +14,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
   const isDark = theme === 'dark';
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  const abbreviateTeam = (name: string) =>
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((w) => w[0]?.toUpperCase())
+      .join('');
+
+  const shortEventName =
+    (match.eventShortName ?? '').trim() || `${abbreviateTeam(match.teamA.name)} vs ${abbreviateTeam(match.teamB.name)}`;
+  const fullEventName =
+    (match.eventName ?? '').trim() || (match.eventShortName ?? '').trim() || `${match.teamA.name} vs ${match.teamB.name}`;
+
   // ─── Theme tokens ───────────────────────────────────────────────────────────
  const t = {
   // Card shell (CLEAN WHITE)
@@ -226,6 +240,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
             />
           </div>
 
+          <span
+            className="text-[10px] sm:text-xs font-bold tracking-[0.18em] uppercase text-center leading-tight"
+            style={{ color: t.leagueLabelColor }}
+            title={fullEventName}
+            aria-label={fullEventName}
+          >
+            {shortEventName}
+          </span>
+
           {isLive ? (
             <div
               className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
@@ -356,8 +379,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, theme = 'dark' }) =
           className="rounded-2xl border p-4 shadow-xl bg-white/95 backdrop-blur-md"
           style={{ border: '1px solid rgba(0,0,0,0.08)' }}
         >
-          <div className="text-sm font-bold text-gray-900 truncate">
-            {match.eventName || `${match.teamA.name} vs ${match.teamB.name}`}
+          <div className="text-sm font-bold text-gray-900 leading-snug break-words">
+            {fullEventName}
           </div>
           <div className="mt-2 grid gap-1.5 text-xs text-gray-700">
             <div className="flex items-center gap-2">
