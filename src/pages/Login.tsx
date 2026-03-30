@@ -25,6 +25,34 @@ export const Login: React.FC = () => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
 
+  // Auto-fill OTP from SMS on supported browsers (WebOTP API - mainly Chrome on Android).
+  useEffect(() => {
+    if (step !== 'otp') return;
+    if (!phoneDigits || phoneDigits.length !== 10) return;
+    if (otp.length === 6) return;
+
+    const navAny = navigator as any;
+    if (!navAny?.credentials?.get) return;
+
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const cred = await navAny.credentials.get({
+          otp: { transport: ['sms'] },
+          signal: ac.signal,
+        });
+        const code = (cred as any)?.code;
+        if (typeof code === 'string' && code.trim()) {
+          setOtp(code.replace(/\D/g, '').slice(0, 6));
+        }
+      } catch {
+        // ignore (unsupported, canceled, timeout, etc.)
+      }
+    })();
+
+    return () => ac.abort();
+  }, [step, phoneDigits, otp.length]);
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -149,6 +177,7 @@ export const Login: React.FC = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 placeholder="Enter Mobile Number"
+                autoComplete="tel"
                 className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
@@ -189,6 +218,8 @@ export const Login: React.FC = () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="Enter OTP"
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 className="w-full px-4 py-3 border border-border rounded-lg text-center bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
