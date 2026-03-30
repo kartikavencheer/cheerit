@@ -4,7 +4,7 @@ import { LogOut, Mail, Phone, Shield, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { getPlayedScenesPage, getVideosPage } from '../api/client';
+import { getPlayedSceneGridsForUser, getVideosPage } from '../api/client';
 
 export const Profile: React.FC = () => {
   const { user, logout, isLoading, refreshUserDetails } = useAuth();
@@ -39,8 +39,8 @@ export const Profile: React.FC = () => {
   });
 
   const { data: scenesMeta, isLoading: isLoadingScenes, isError: isScenesError } = useQuery({
-    queryKey: ['profile', 'stats', 'scenes', userId],
-    queryFn: () => getPlayedScenesPage(1, 1),
+    queryKey: ['user', 'played-scenes', userId],
+    queryFn: () => getPlayedSceneGridsForUser(userId as string),
     retry: false,
     staleTime: 60_000,
     enabled: !!userId,
@@ -48,7 +48,7 @@ export const Profile: React.FC = () => {
 
   const memberSince = parseMemberSince(user?.createdAt);
   const videosCount = videosMeta?.total ?? videosMeta?.items.length ?? 0;
-  const scenesCount = scenesMeta?.total ?? scenesMeta?.items.length ?? 0;
+  const scenesCount = scenesMeta?.length ?? 0;
 
   if (!user) {
     return (
