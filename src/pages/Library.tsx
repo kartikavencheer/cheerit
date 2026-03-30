@@ -235,7 +235,7 @@ export const Library: React.FC = () => {
                     window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
                   }}
                 >
-                  <div className="relative bg-black/5">
+                  <div className="relative bg-black aspect-[9/16] overflow-hidden">
                     {mediaType === 'VIDEO' && activeVideoId === video.id ? (
                       <video
                         src={video.videoUrl}
@@ -244,7 +244,7 @@ export const Library: React.FC = () => {
                         autoPlay
                         playsInline
                         preload="metadata"
-                        className="block w-full h-auto bg-black"
+                        className="absolute inset-0 w-full h-full object-contain bg-black"
                         onClick={(e) => e.stopPropagation()}
                       >
                         Your browser does not support the video tag.
@@ -257,7 +257,7 @@ export const Library: React.FC = () => {
                             : video.thumbnailUrl || video.videoUrl) || undefined
                         }
                         alt={video.matchName}
-                        className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                        className="absolute inset-0 w-full h-full object-contain bg-black transition-transform duration-500 group-hover:scale-[1.02]"
                       />
                     )}
                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />

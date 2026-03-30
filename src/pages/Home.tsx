@@ -214,11 +214,7 @@ export const Home: React.FC = () => {
               </h1>
 
               <div className="max-w-xl space-y-3">
-                <p className="text-base sm:text-lg text-foreground leading-relaxed opacity-90">
-                  <span className="font-extrabold text-foreground opacity-100">CheerIT</span> is a secure,{' '}
-                  <span className="text-gradient font-bold">AI-verified</span>, near real-time event cheer
-                  infrastructure.
-                </p>
+             
 
                 <div className="inline-flex items-center gap-2.5 rounded-full glass px-4 py-2 shadow-lg shadow-primary/10 ring-1 ring-primary/20">
                   <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center shadow-[0_0_20px_rgba(31,111,235,0.18)]">
@@ -238,7 +234,11 @@ export const Home: React.FC = () => {
                 <span className="text-sm text-gray-500">Powered by Avencheer Technologies</span>
                 {/* <img src="/images/image.png" className="h-8" /> */}
               </div>
-
+   <p className="text-base sm:text-lg text-foreground leading-relaxed opacity-90">
+                  <span className="font-extrabold text-foreground opacity-100">CheerIT</span> is a secure,{' '}
+                  <span className="text-gradient font-bold">AI-verified</span>, near real-time event cheer
+                  infrastructure.
+                </p>
               {/* <div className="flex items-center gap-2 text-primary text-sm bg-primary/10 px-3 py-1 rounded-full w-fit">
                 <ShieldCheck className="w-4 h-4" />
                 AI Moderation
@@ -257,15 +257,29 @@ export const Home: React.FC = () => {
 
               <div className="flex items-center gap-4">
                 <div className="bg-white p-2 rounded-lg flex items-center justify-center">
+<a
+  href="https://play.google.com/store/apps/details?id=com.avencheer.cheerit"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="inline-block cursor-pointer"
+>
   <img
     src="/images/qr.png"
     alt="QR Code"
     className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
   />
+</a>
 </div>
-                <span className="text-sm text-primary font-semibold">
-                  Scan to Download
-                </span>
+               <span className="text-sm text-primary font-semibold">
+  <a
+    href="https://play.google.com/store/apps/details?id=com.avencheer.cheerit"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="cursor-pointer hover:underline inline-block"
+  >
+    Scan or Click to Download
+  </a>
+</span>
               </div>
 
             </motion.div>
@@ -307,7 +321,7 @@ export const Home: React.FC = () => {
               [
                 { id: 'live' as const, label: 'Live' },
                 { id: 'upcoming' as const, label: 'Upcoming' },
-                { id: 'completed' as const, label: 'Completed' },
+                { id: 'completed' as const, label: 'Closed' },
               ] satisfies { id: MatchesTab; label: string }[]
             ).map((t) => {
               const active = matchesTab === t.id;

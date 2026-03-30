@@ -3,6 +3,13 @@ import axios from 'axios';
 import { apiClient, fetchUserDetails, normalizeUserProfile, UserProfile } from '../api/client';
 import { toast } from 'sonner';
 
+export class NotRegisteredError extends Error {
+  constructor(message?: string) {
+    super(message || 'You are not registered. Please register using our app on the Play Store.');
+    this.name = 'NotRegisteredError';
+  }
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
@@ -134,6 +141,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return digits;
   };
 
+  const getApiErrorInfo = (error: unknown): { status?: number; message: string } => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const data = error.response?.data as any;
+      const messageFromBody =
+        typeof data === 'string'
+          ? data
+          : typeof data?.message === 'string'
+            ? data.message
+            : typeof data?.error === 'string'
+              ? data.error
+              : typeof data?.detail === 'string'
+                ? data.detail
+                : undefined;
+      return { status, message: messageFromBody || error.message || 'Request failed' };
+    }
+
+    const message = error instanceof Error ? error.message : 'Request failed';
+    return { message };
+  };
+
+  const isNotRegisteredError = (info: { status?: number; message: string }) => {
+    if (info.status === 404) return true;
+    return /(not\s+registered|user\s+not\s+found|no\s+user|please\s+register)/i.test(info.message);
+  };
+
   const sendOtp = async (phone: string) => {
     try {
       const mobileNumber = normalizeMobileNumber(phone);
@@ -144,7 +177,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success(data?.message || 'OTP sent successfully!');
     } catch (error) {
       console.error('Failed to send OTP:', error);
-      toast.error('Failed to send OTP. Please try again.');
+      const info = getApiErrorInfo(error);
+      if (isNotRegisteredError(info)) {
+        throw new NotRegisteredError('You are not registered. Kindly register using our app from the Play Store.');
+      }
+      toast.error(info.message || 'Failed to send OTP. Please try again.');
       throw error;
     }
   };
@@ -190,8 +227,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success(data.message || 'Login successful!');
     } catch (error) {
       console.error('Login failed:', error);
-      const message = error instanceof Error ? error.message : 'Invalid OTP or login failed.';
-      toast.error(message);
+      const info = getApiErrorInfo(error);
+      if (isNotRegisteredError(info)) {
+        throw new NotRegisteredError('You are not registered. Kindly register using our app from the Play Store.');
+      }
+      toast.error(info.message || 'Invalid OTP or login failed.');
       throw error;
     }
   };
