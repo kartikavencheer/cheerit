@@ -309,15 +309,17 @@ export const Library: React.FC = () => {
                       </button>
                     ) : null}
 
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                      <div className="w-16 h-16 2xl:w-20 2xl:h-20 rounded-full bg-primary/90 flex items-center justify-center text-white shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
-                        {mediaType === 'IMAGE' ? (
-                          <ImageIcon className="w-8 h-8 2xl:w-10 2xl:h-10" />
-                        ) : (
-                          <Play className="w-8 h-8 2xl:w-10 2xl:h-10 ml-1" />
-                        )}
+                    {!(mediaType === 'VIDEO' && activeVideoId === video.id) ? (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                        <div className="w-16 h-16 2xl:w-20 2xl:h-20 rounded-full bg-primary/90 flex items-center justify-center text-white shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
+                          {mediaType === 'IMAGE' ? (
+                            <ImageIcon className="w-8 h-8 2xl:w-10 2xl:h-10" />
+                          ) : (
+                            <Play className="w-8 h-8 2xl:w-10 2xl:h-10 ml-1" />
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    ) : null}
                   </div>
 
                   <div className="p-4 bg-[#0a0a0a] border-t border-white/10">

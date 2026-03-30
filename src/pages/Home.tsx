@@ -175,7 +175,7 @@ export const Home: React.FC = () => {
             <div className="glass rounded-xl px-4 py-3 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <Video className="w-4 h-4 text-primary" />
-                <span className="text-sm text-gray-300">
+                <span className="text-sm text-black-300">
                   {featuredMatch
                     ? `${featuredMatch.teamA.name} vs ${featuredMatch.teamB.name}`
                     : 'Fan moments live'}
@@ -227,7 +227,7 @@ export const Home: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500">Powered by Avencheer</span>
+                <span className="text-sm text-gray-500">Powered by Avencheer Technologies</span>
                 {/* <img src="/images/image.png" className="h-8" /> */}
               </div>
 
@@ -236,7 +236,7 @@ export const Home: React.FC = () => {
                 AI Moderation
               </div> */}
 
-              <div className="flex gap-3">
+              {/* <div className="flex gap-3">
                 <div className="glass px-4 py-2 rounded-full text-sm flex gap-2 items-center">
                   <Video className="w-4 h-4 text-blue-500" />
                   Record
@@ -245,7 +245,7 @@ export const Home: React.FC = () => {
                   <Film className="w-4 h-4 text-blue-500" />
                   Upload
                 </div>
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-4">
                 <div className="bg-white p-2 rounded-lg flex items-center justify-center">
