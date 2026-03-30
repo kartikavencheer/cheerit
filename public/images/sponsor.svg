@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="80" viewBox="0 0 220 80" role="img" aria-label="Sponsor logo">
+  <rect x="0" y="0" width="220" height="80" rx="14" fill="#ffffff"/>
+  <g fill="none" stroke="#e5e7eb" stroke-width="2">
+    <rect x="1" y="1" width="218" height="78" rx="14"/>
+  </g>
+  <g transform="translate(18,18)">
+    <circle cx="22" cy="22" r="22" fill="#ef4444"/>
+    <path d="M22 10l3.2 8.6H34l-7 5.2 2.7 8.6-7.7-5.4-7.7 5.4 2.7-8.6-7-5.2h8.8z" fill="#ffffff" opacity="0.95"/>
+    <text x="56" y="29" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="22" font-weight="800" fill="#111827" letter-spacing="0.6">
+      SPONSOR
+    </text>
+    <text x="56" y="45" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="12" font-weight="600" fill="#6b7280" letter-spacing="2">
+      BRAND
+    </text>
+  </g>
+</svg>

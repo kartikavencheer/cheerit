@@ -17,6 +17,7 @@ type SceneModalProps = {
 };
 
 export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }) => {
+  const sponsorLogoUrl = import.meta.env.VITE_SPONSOR_LOGO_URL || '/images/emirate.png';
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const videosRef = useRef<(HTMLVideoElement | null)[]>([]);
@@ -187,6 +188,12 @@ export const SceneModal: React.FC<SceneModalProps> = ({ isOpen, onClose, scene }
                       tile?.isUser ? 'border-primary/70 shadow-[0_0_0_1px_rgba(31,111,235,0.35)]' : 'border-white/10'
                     }`}
                   >
+                    <div className="pointer-events-none absolute top-2 right-2 z-10">
+                      <div className="bg-white rounded-xl px-2 py-1 shadow-lg border border-black/5">
+                        <img src={sponsorLogoUrl} alt="Sponsor" className="h-6 w-auto object-contain" />
+                      </div>
+                    </div>
+
                     {tile?.videoUrl && !tileErrors[tile.tileId] ? (
                       <video
                         ref={(el) => {
