@@ -196,24 +196,52 @@ export const normalizeUserProfile = (apiUser: any): UserProfile => {
 };
 
 const extractUserObject = (payload: any): any | undefined => {
-  if (!payload || typeof payload !== 'object') return undefined;
-  const candidates = [
-    (payload as any).user,
-    (payload as any).data?.user,
-    (payload as any).data?.data?.user,
-    (payload as any).value?.user,
-    (payload as any).profile,
-    (payload as any).data?.profile,
-    (payload as any).data,
-    (payload as any).data?.data,
-    (payload as any).value,
-    (payload as any).value?.data,
-  ];
+  const looksLikeUser = (value: any) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const v = value as Record<string, unknown>;
+    const nonEmpty = (x: unknown) => {
+      if (typeof x === 'string') return x.trim().length > 0;
+      if (typeof x === 'number') return Number.isFinite(x);
+      if (typeof x === 'boolean') return true;
+      return x !== null && typeof x !== 'undefined';
+    };
 
-  for (const c of candidates) {
-    if (c && typeof c === 'object' && !Array.isArray(c)) return c;
-  }
-  return undefined;
+    return (
+      nonEmpty(v.user_id) ||
+      nonEmpty(v.userId) ||
+      nonEmpty(v.id) ||
+      nonEmpty(v.uuid) ||
+      nonEmpty(v.user_uuid) ||
+      nonEmpty(v.full_name) ||
+      nonEmpty(v.fullName) ||
+      nonEmpty(v.mobile_number) ||
+      nonEmpty(v.mobileNumber) ||
+      nonEmpty(v.phone) ||
+      nonEmpty(v.email_address) ||
+      nonEmpty(v.emailAddress) ||
+      nonEmpty(v.email) ||
+      nonEmpty(v.profile_image) ||
+      nonEmpty(v.profileImage) ||
+      nonEmpty(v.profile_image_url) ||
+      nonEmpty(v.profileImageUrl)
+    );
+  };
+
+  const dig = (value: any, depth = 0): any | undefined => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    if (depth > 5) return undefined;
+    if (looksLikeUser(value)) return value;
+
+    const v = value as any;
+    const candidates = [v.user, v.profile, v.data, v.value, v.result, v.payload];
+    for (const c of candidates) {
+      const found = dig(c, depth + 1);
+      if (found) return found;
+    }
+    return undefined;
+  };
+
+  return dig(payload);
 };
 
 export const fetchUserDetails = async (userId?: string): Promise<UserProfile> => {
@@ -236,7 +264,9 @@ export const fetchUserDetails = async (userId?: string): Promise<UserProfile> =>
       const { data } = await apiClient.get<any>(path);
       const apiUser = extractUserObject(data) ?? data;
       const normalized = normalizeUserProfile(apiUser);
-      if (normalized.id || normalized.phone || normalized.email || normalized.name) return normalized;
+      const hasMeaningfulFields = !!(normalized.id || normalized.phone || normalized.email || normalized.avatar);
+      const hasNonDefaultName = !!(normalized.name && normalized.name.trim() && normalized.name.trim() !== 'User');
+      if (hasMeaningfulFields || hasNonDefaultName) return normalized;
     } catch (err) {
       lastError = err;
       if (axios.isAxiosError(err)) {
